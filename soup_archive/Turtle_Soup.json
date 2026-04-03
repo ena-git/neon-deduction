@@ -1,0 +1,82 @@
+{
+  "title": "Turtle Soup",
+  "public_info": "A man who had once survived a shipwreck goes into a restaurant and orders turtle soup. After tasting it, he goes home and kills himself.",
+  "question": "Did he realize that the soup he had eaten after the shipwreck was not actually turtle soup?",
+  "hidden_truth": "Years earlier, the man had survived a shipwreck and was stranded at sea with other survivors. During that ordeal, he was served soup and was told that it was turtle soup. He accepted this and survived. Much later, he entered a restaurant and ordered real turtle soup. After tasting it, he realized that the flavor was different from the soup he had eaten during the shipwreck. He then understood that the earlier soup had not really been turtle soup, but human flesh made from one of the other survivors. Realizing that he had unknowingly eaten human flesh, he was overwhelmed by horror and guilt, and killed himself.",
+  "judge_task": "Determine whether the player's yes-or-no question should be answered YES, NO, or IRRELEVANT based on the hidden truth and the public scenario.",
+  "verdict_definitions": {
+    "YES": "The question is supported as true by the hidden truth and the public scenario.",
+    "NO": "The question is contradicted by the hidden truth and the public scenario.",
+    "IRRELEVANT": "The question asks about something that is not established, not implied, or unnecessary to solving the puzzle."
+  },
+  "rules": [
+    "Use the hidden_truth as the ground truth for judging.",
+    "Use public_info as the information visible to the player.",
+    "Do not invent facts beyond hidden_truth.",
+    "Do not rely on outside world knowledge unless it directly helps interpret the explicit hidden_truth.",
+    "If a question asks about a detail not stated or implied by hidden_truth, answer IRRELEVANT.",
+    "Answer only with the allowed verdicts YES, NO, or IRRELEVANT.",
+    "Provide a short clarification based strictly on the puzzle data."
+  ],
+  "forbidden_assumptions": [
+    "Do not assume extra details about the restaurant, chef, or location.",
+    "Do not assume the man had prior knowledge beyond what hidden_truth states.",
+    "Do not assume motives for other survivors beyond what hidden_truth states.",
+    "Do not add new events not present in hidden_truth.",
+    "Do not treat emotionally plausible guesses as established fact."
+  ],
+  "known_entities": [
+    {
+      "name": "the man",
+      "description": "The main character who survived a shipwreck, later tasted real turtle soup, and then killed himself."
+    },
+    {
+      "name": "the restaurant",
+      "description": "The place where the man later ordered and tasted real turtle soup."
+    },
+    {
+      "name": "the earlier soup",
+      "description": "The soup served to the man after the shipwreck, falsely described to him as turtle soup."
+    },
+    {
+      "name": "real turtle soup",
+      "description": "The authentic turtle soup served in the restaurant years later."
+    }
+  ],
+  "few_shot_examples": [
+    {
+      "question": "Did the man eat human flesh after the shipwreck?",
+      "verdict": "YES",
+      "clarification": "The hidden truth states that the earlier soup was actually made from human flesh."
+    },
+    {
+      "question": "Did the restaurant poison him?",
+      "verdict": "NO",
+      "clarification": "The restaurant served real turtle soup and did not cause his death by poisoning."
+    },
+    {
+      "question": "Did he kill himself because the taste made him remember something important?",
+      "verdict": "YES",
+      "clarification": "Tasting the real soup made him realize the truth about the soup he had eaten earlier."
+    },
+    {
+      "question": "Was the chef one of the shipwreck survivors?",
+      "verdict": "IRRELEVANT",
+      "clarification": "The hidden truth gives no information connecting the chef to the shipwreck."
+    },
+    {
+      "question": "Was he tricked during the shipwreck?",
+      "verdict": "YES",
+      "clarification": "He was told the earlier soup was turtle soup, but it was actually human flesh."
+    },
+    {
+      "question": "Did he already know before entering the restaurant that he had eaten human flesh?",
+      "verdict": "NO",
+      "clarification": "He only realized the truth after tasting real turtle soup and noticing the difference."
+    }
+  ],
+  "output_schema": {
+    "verdict": "YES | NO | IRRELEVANT",
+    "clarification": "A short, precise explanation strictly based on the hidden truth and public scenario."
+  }
+}
