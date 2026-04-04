@@ -19,13 +19,6 @@ This project is currently in **Active Development**. Please note the following:
 * **Interface** Terminal (Goal: HTML)
 * **LLM Integration:** This game utilizes a Large Language Model (LLM) for processing player inquiries. 
     * **Note:** The LLM is currently **not open to the internet**. It runs in a local/restricted environment for development and testing purposes.
-
----
-
-## 🛠 Features (Planned & Existing)
-* **Complex Scenarios:** Hand-crafted "Turtle Soup" stories.
-* **Interactive Dialogue:** A logic-based system to handle player questions.
-* **Python-Powered:** Lightweight and efficient core logic.
   
 ---
 
