@@ -1,6 +1,6 @@
 # 🐢 Turtle Soup
 
-Welcome to the official repository for **Turtle Soup**.
+Welcome to the repository for **Turtle Soup**.
 
 ---
 
