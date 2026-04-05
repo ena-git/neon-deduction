@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — Neon Deduction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0D0D0D; --pink: #FF2D78; --violet: #7B2FFF;
+      --cyan: #00F5FF; --green: #00FF88; --yellow: #FFD700;
+      --red: #FF3333; --text: #E8E8E8; --text-dim: #555;
+      --card-bg: #0F0F0F; --border: #1C1C1C;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Space Grotesk', sans-serif; min-height: 100vh;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+      pointer-events: none; z-index: 100;
+    }
+
+    /* ── TOP BAR ─────────────────────────────────────────────── */
+    .top-bar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 52px;
+      background: rgba(13,13,13,0.97); border-bottom: 1px solid var(--border);
+    }
+    .back-link {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--text-dim);
+      text-decoration: none; transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--text); }
+
+    /* ── MAIN ────────────────────────────────────────────────── */
+    .main { max-width: 520px; margin: 0 auto; padding: 44px 28px 80px; position: relative; z-index: 5; }
+    .page-eyebrow {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.3em;
+      color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;
+    }
+    .page-title {
+      font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 40px;
+    }
+
+    /* ── SETTING ROW ────────────────────────────────────────── */
+    .setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px; background: var(--card-bg);
+      border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px;
+    }
+    .setting-info { flex: 1; min-width: 0; margin-right: 16px; }
+    .setting-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .setting-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+
+    /* Username inline edit */
+    .username-display-wrap { display: flex; align-items: center; gap: 8px; }
+    .username-disp { font-size: 13px; font-weight: 700; color: var(--cyan); }
+    .edit-btn {
+      background: none; border: 1px solid var(--border); color: var(--text-dim);
+      font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 8px;
+      border-radius: 3px; cursor: pointer; transition: all 0.2s;
+    }
+    .edit-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .username-edit-wrap { display: none; align-items: center; gap: 8px; }
+    .username-edit-wrap.active { display: flex; }
+    .name-input {
+      background: rgba(0,245,255,0.05); border: 1px solid rgba(0,245,255,0.3);
+      border-radius: 4px; color: var(--text);
+      font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600;
+      padding: 5px 10px; outline: none; width: 140px;
+    }
+    .name-input:focus { border-color: var(--cyan); }
+    .save-btn {
+      background: var(--cyan); border: none; color: #000;
+      font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; padding: 5px 10px;
+      border-radius: 3px; cursor: pointer;
+    }
+    .cancel-edit {
+      background: none; border: none; color: var(--text-dim); font-size: 14px;
+      cursor: pointer; padding: 2px 4px;
+    }
+
+    /* Toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .toggle-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--text-dim); min-width: 28px; }
+    .toggle {
+      width: 42px; height: 24px; border-radius: 12px; background: rgba(255,255,255,0.1);
+      border: 1px solid var(--border); position: relative; cursor: pointer;
+      transition: background 0.2s, border-color 0.2s; flex-shrink: 0;
+    }
+    .toggle.on { background: rgba(0,255,136,0.2); border-color: rgba(0,255,136,0.4); }
+    .toggle-knob {
+      width: 18px; height: 18px; border-radius: 50%; background: var(--text-dim);
+      position: absolute; top: 2px; left: 2px; transition: left 0.2s, background 0.2s;
+    }
+    .toggle.on .toggle-knob { left: 20px; background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+    /* ── SECTION DIVIDER ────────────────────────────────────── */
+    .section-divider {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--text-dim);
+      margin: 28px 0 14px; padding-left: 4px;
+    }
+
+    /* ── DANGER ZONE ─────────────────────────────────────────── */
+    .danger-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px; background: rgba(255,51,51,0.04);
+      border: 1px solid rgba(255,51,51,0.15); border-radius: 8px; margin-bottom: 10px;
+    }
+    .danger-btn {
+      background: transparent; border: 1px solid rgba(255,51,51,0.4); color: var(--red);
+      font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase; padding: 7px 14px;
+      border-radius: 3px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+    }
+    .danger-btn:hover { background: rgba(255,51,51,0.12); border-color: var(--red); }
+    .danger-name { font-size: 14px; font-weight: 600; color: var(--red); margin-bottom: 3px; }
+    .danger-desc { font-size: 12px; color: var(--text-dim); }
+
+    /* Confirm clear overlay */
+    .confirm-overlay {
+      position: fixed; inset: 0; z-index: 400; background: rgba(0,0,0,0.92);
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .confirm-box {
+      background: var(--card-bg); border: 1px solid rgba(255,51,51,0.3);
+      border-radius: 10px; padding: 28px; max-width: 360px; width: 100%; text-align: center;
+    }
+    .confirm-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.25em; color: var(--red); text-transform: uppercase; margin-bottom: 8px; }
+    .confirm-title { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+    .confirm-body { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 24px; }
+    .confirm-body strong { color: var(--text); }
+    .confirm-actions { display: flex; gap: 10px; }
+    .confirm-cancel {
+      flex: 1; padding: 12px; border-radius: 4px;
+      background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+      font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+    }
+    .confirm-cancel:hover { color: var(--text); border-color: var(--text-dim); }
+    .confirm-delete {
+      flex: 1; padding: 12px; border-radius: 4px;
+      background: transparent; border: 1px solid var(--red); color: var(--red);
+      font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+    }
+    .confirm-delete:hover { background: var(--red); color: #000; }
+  </style>
+</head>
+<body>
+
+  <!-- Confirm clear overlay -->
+  <div id="confirm-overlay" class="confirm-overlay" style="display:none">
+    <div class="confirm-box">
+      <p class="confirm-eyebrow">⚠ Danger Zone</p>
+      <h3 class="confirm-title">Clear All Data?</h3>
+      <p class="confirm-body">
+        This will permanently erase <strong>all progress</strong> — rank, currency, solved cases, players, and settings.
+        <br><br>This cannot be undone.
+      </p>
+      <div class="confirm-actions">
+        <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-delete" onclick="clearAllData()">Erase Everything</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <a href="profile.html" class="back-link">← Profile</a>
+    <span style="font-size:10px;font-weight:600;letter-spacing:0.3em;text-transform:uppercase;color:var(--text-dim)">// Settings</span>
+    <span></span>
+  </div>
+
+  <main class="main">
+    <p class="page-eyebrow">// Configuration</p>
+    <h1 class="page-title">Settings</h1>
+
+    <!-- Username -->
+    <p class="section-divider">Account</p>
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">Callsign</div>
+        <div class="setting-desc">Your detective identity — shown in leaderboards and match history.</div>
+      </div>
+      <div>
+        <div class="username-display-wrap" id="username-display-wrap">
+          <span class="username-disp" id="username-disp"></span>
+          <button class="edit-btn" onclick="startEdit()">Edit</button>
+        </div>
+        <div class="username-edit-wrap" id="username-edit-wrap">
+          <input class="name-input" id="name-input" type="text" maxlength="20" autocomplete="off" />
+          <button class="save-btn" onclick="saveEdit()">Save</button>
+          <button class="cancel-edit" onclick="cancelEdit()">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preferences -->
+    <p class="section-divider">Preferences</p>
+
+    <!-- Sound toggle -->
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">Sound Effects</div>
+        <div class="setting-desc">UI sounds for signals and game events. (No audio implemented yet.)</div>
+      </div>
+      <div class="toggle-wrap">
+        <span class="toggle-label" id="sound-label"></span>
+        <div class="toggle" id="sound-toggle" onclick="toggleSound()">
+          <div class="toggle-knob"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data -->
+    <p class="section-divider">Data</p>
+
+    <div class="danger-row">
+      <div class="setting-info">
+        <div class="danger-name">Clear All Data</div>
+        <div class="danger-desc">Erase all progress, currency, solved cases, player profiles, and settings.</div>
+      </div>
+      <button class="danger-btn" onclick="openConfirm()">Clear Data</button>
+    </div>
+
+  </main>
+
+  <script src="mysteries.js"></script>
+  <script>
+    // ── Username ──────────────────────────────────────────────
+    function renderUsername() {
+      const name = getProfileName();
+      document.getElementById('username-disp').textContent = name || '(not set)';
+    }
+
+    function startEdit() {
+      const name = getProfileName();
+      document.getElementById('username-display-wrap').style.display = 'none';
+      const wrap = document.getElementById('username-edit-wrap');
+      wrap.classList.add('active');
+      const input = document.getElementById('name-input');
+      input.value = name;
+      input.focus();
+    }
+
+    function cancelEdit() {
+      document.getElementById('username-edit-wrap').classList.remove('active');
+      document.getElementById('username-display-wrap').style.display = 'flex';
+    }
+
+    function saveEdit() {
+      const val = document.getElementById('name-input').value.trim();
+      if (!val) { cancelEdit(); return; }
+      setProfileName(val);
+      getOrCreatePlayer(val);
+      cancelEdit();
+      renderUsername();
+    }
+
+    document.getElementById('name-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveEdit();
+      if (e.key === 'Escape') cancelEdit();
+    });
+
+    // ── Sound toggle ──────────────────────────────────────────
+    function renderSound() {
+      const on = getSoundEnabled();
+      const toggle = document.getElementById('sound-toggle');
+      const label = document.getElementById('sound-label');
+      toggle.classList.toggle('on', on);
+      label.textContent = on ? 'ON' : 'OFF';
+      label.style.color = on ? 'var(--green)' : 'var(--text-dim)';
+    }
+
+    function toggleSound() {
+      setSoundEnabled(!getSoundEnabled());
+      renderSound();
+    }
+
+    // ── Clear data ────────────────────────────────────────────
+    function openConfirm() { document.getElementById('confirm-overlay').style.display = 'flex'; }
+    function closeConfirm() { document.getElementById('confirm-overlay').style.display = 'none'; }
+
+    function clearAllData() {
+      localStorage.clear();
+      closeConfirm();
+      window.location.href = 'index.html';
+    }
+
+    // ── Init ──────────────────────────────────────────────────
+    renderUsername();
+    renderSound();
+  </script>
+</body>
+</html>

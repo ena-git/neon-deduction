@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Competitive — Neon Deduction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0D0D0D; --pink: #FF2D78; --violet: #7B2FFF;
+      --cyan: #00F5FF; --green: #00FF88; --yellow: #FFD700;
+      --red: #FF3333; --text: #E8E8E8; --text-dim: #555;
+      --card-bg: #0F0F0F; --border: #1C1C1C;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Space Grotesk', sans-serif; min-height: 100vh;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px);
+      pointer-events: none; z-index: 100;
+    }
+
+    .top-bar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 52px;
+      background: rgba(13,13,13,0.97); border-bottom: 1px solid var(--border);
+    }
+    .back-link {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--text-dim);
+      text-decoration: none; transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--text); }
+    .top-title { font-size: 11px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-dim); }
+    .currency-pill { font-size: 13px; font-weight: 700; color: var(--yellow); text-shadow: 0 0 10px rgba(255,215,0,0.4); }
+
+    .main { max-width: 520px; margin: 0 auto; padding: 56px 32px 80px; }
+
+    .page-eyebrow {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.3em;
+      color: var(--pink); text-transform: uppercase; margin-bottom: 10px;
+      text-shadow: 0 0 12px rgba(255,45,120,0.6);
+    }
+    .page-title {
+      font-size: 36px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px;
+      text-shadow: 0 0 32px rgba(255,45,120,0.25);
+    }
+    .page-sub {
+      font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 52px;
+    }
+    .page-sub span { color: var(--cyan); }
+
+    .step-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.3em;
+      color: var(--violet); text-transform: uppercase; margin-bottom: 14px;
+      text-shadow: 0 0 8px rgba(123,47,255,0.6);
+    }
+
+    .profile-card {
+      background: var(--card-bg); border: 1px solid rgba(255,45,120,0.2);
+      border-radius: 6px; padding: 16px 20px; margin-bottom: 32px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .profile-name {
+      font-size: 18px; font-weight: 700; letter-spacing: 0.04em;
+      color: var(--text); flex: 1;
+    }
+    .profile-rank-info { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+    .no-profile-warn {
+      font-size: 12px; color: var(--red); margin-bottom: 32px; line-height: 1.6;
+    }
+    .no-profile-warn a { color: var(--pink); }
+
+    .tier-chip {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 3px; margin-right: 6px;
+    }
+
+    .rules-note {
+      background: rgba(123,47,255,0.05); border: 1px solid rgba(123,47,255,0.18);
+      border-radius: 6px; padding: 16px 18px; margin-bottom: 36px;
+    }
+    .rules-note p {
+      font-size: 12px; color: var(--text-dim); line-height: 1.7;
+      display: flex; align-items: baseline; gap: 8px;
+    }
+    .rules-note p + p { margin-top: 6px; }
+    .rules-note .dot { color: var(--violet); flex-shrink: 0; }
+
+    /* ── SKILL SHOP ─────────────────────────────────────────── */
+    .step-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.3em;
+      color: var(--violet); text-transform: uppercase; margin-bottom: 14px;
+      text-shadow: 0 0 8px rgba(123,47,255,0.6);
+    }
+    .shop-note {
+      font-size: 11px; color: var(--text-dim); margin-bottom: 14px;
+      padding: 10px 14px; background: rgba(255,215,0,0.04);
+      border: 1px solid rgba(255,215,0,0.12); border-radius: 4px;
+    }
+    .skill-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 14px; display: flex; align-items: center;
+      gap: 12px; margin-bottom: 8px; transition: border-color 0.2s;
+    }
+    .skill-card.owned { border-color: rgba(0,255,136,0.3); }
+    .skill-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; }
+    .skill-info { flex: 1; min-width: 0; }
+    .skill-name { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+    .skill-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+    .skill-action { flex-shrink: 0; text-align: right; }
+    .skill-price { font-size: 11px; color: var(--yellow); font-weight: 600; margin-bottom: 5px; }
+    .buy-btn {
+      background: transparent; border: 1px solid var(--violet);
+      color: var(--violet); font-family: 'Space Grotesk', sans-serif;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.15em;
+      text-transform: uppercase; padding: 4px 10px; border-radius: 3px;
+      cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    }
+    .buy-btn:hover:not(:disabled) { background: var(--violet); color: #000; }
+    .buy-btn:disabled { border-color: #2a2a2a; color: #2a2a2a; cursor: not-allowed; }
+    .buy-btn.owned { border-color: var(--green); color: var(--green); cursor: default; pointer-events: none; }
+
+    .start-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .start-btn {
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px;
+      background: transparent; border: 1px solid var(--pink); color: var(--pink);
+      font-family: 'Space Grotesk', sans-serif; font-size: 13px;
+      font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase;
+      padding: 16px 0; border-radius: 4px; cursor: pointer;
+      position: relative; overflow: hidden; transition: all 0.3s;
+      box-shadow: 0 0 20px rgba(255,45,120,0.12);
+    }
+    .start-btn::before {
+      content: ''; position: absolute; inset: 0;
+      background: var(--pink); transform: translateX(-101%); transition: transform 0.3s;
+    }
+    .start-btn:hover::before { transform: translateX(0); }
+    .start-btn:hover { color: #000; box-shadow: 0 0 40px rgba(255,45,120,0.35); }
+    .start-btn span { position: relative; z-index: 1; }
+    .start-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .start-btn:disabled:hover::before { transform: translateX(-101%); }
+    .start-btn:disabled:hover { color: var(--pink); }
+    .err-msg { font-size: 12px; color: var(--red); min-height: 18px; }
+
+    /* ── MATCHMAKING OVERLAY ────────────────────────────────── */
+    .mm-overlay {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(4,1,18,0.98);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.35s;
+    }
+    .mm-overlay.active { opacity: 1; pointer-events: all; }
+
+    .mm-ring {
+      width: 90px; height: 90px; border-radius: 50%;
+      border: 2px solid rgba(255,45,120,0.15);
+      border-top-color: var(--pink);
+      animation: mm-spin 1.2s linear infinite;
+      margin-bottom: 40px;
+      box-shadow: 0 0 30px rgba(255,45,120,0.2), inset 0 0 20px rgba(255,45,120,0.05);
+      position: relative;
+    }
+    .mm-ring::after {
+      content: ''; position: absolute; inset: 6px; border-radius: 50%;
+      border: 1px solid rgba(123,47,255,0.2);
+      border-bottom-color: var(--violet);
+      animation: mm-spin 2s linear infinite reverse;
+    }
+    @keyframes mm-spin { to { transform: rotate(360deg); } }
+
+    .mm-lines { width: min(400px, 88vw); display: flex; flex-direction: column; gap: 0; }
+
+    .mm-line {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--text-dim); padding: 11px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      display: flex; align-items: center; gap: 12px;
+      opacity: 0; transform: translateY(6px);
+      transition: opacity 0.35s, transform 0.35s;
+    }
+    .mm-line.visible { opacity: 1; transform: translateY(0); }
+    .mm-line .mm-icon { width: 18px; text-align: center; flex-shrink: 0; font-size: 14px; }
+    .mm-line .mm-label { color: var(--text-dim); flex-shrink: 0; }
+    .mm-line .mm-val { color: var(--text); }
+    .mm-line.done .mm-val { color: var(--green); }
+    .mm-line.highlight .mm-val { color: var(--pink); text-shadow: 0 0 10px rgba(255,45,120,0.6); }
+
+    .mm-dots::after {
+      content: '';
+      animation: mm-dot-cycle 1.2s steps(4, end) infinite;
+    }
+    @keyframes mm-dot-cycle {
+      0%  { content: ''; }
+      25% { content: '.'; }
+      50% { content: '..'; }
+      75% { content: '...'; }
+    }
+
+    .mm-cancel {
+      margin-top: 44px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--text-dim); background: none; border: none; cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif; transition: color 0.2s;
+    }
+    .mm-cancel:hover { color: var(--text); }
+    .mm-cancel.hidden { opacity: 0; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <a href="hub.html" class="back-link">← Main Menu</a>
+    <span class="top-title">// Competitive</span>
+    <span class="currency-pill">◈ <span id="currency-val">0</span></span>
+  </div>
+
+  <main class="main">
+    <p class="page-eyebrow">// Online Matchmaking</p>
+    <h1 class="page-title">Find a Match</h1>
+    <p class="page-sub">You'll be matched with a <span>random opponent</span>. A case is assigned automatically — no two detectives face the same case twice.</p>
+
+    <div id="profile-display"></div>
+
+    <div class="rules-note">
+      <p><span class="dot">◈</span> Opponent and case are chosen randomly by the system.</p>
+      <p><span class="dot">◈</span> You cannot replay a case you've already played in competitive.</p>
+      <p><span class="dot">◈</span> Once matched, the case begins immediately — no selection screen.</p>
+    </div>
+
+    <!-- Skill Shop -->
+    <p class="step-label">// Equip Skills</p>
+    <div class="shop-note">Balance: <strong style="color:var(--yellow)">◈ <span id="pool-display">0</span></strong> &nbsp;·&nbsp; Skills are single-use per match.</div>
+    <div class="skill-card" id="hide-card">
+      <div class="skill-icon">🫥</div>
+      <div class="skill-info">
+        <div class="skill-name">Hide Question</div>
+        <div class="skill-desc">Your next question text is hidden from your opponent. Signal still visible to both.</div>
+      </div>
+      <div class="skill-action">
+        <div class="skill-price">◈ 30</div>
+        <button class="buy-btn" id="buy-hide" onclick="buySkill('hideQuestion',30)">BUY</button>
+      </div>
+    </div>
+    <div class="skill-card" id="peek-card">
+      <div class="skill-icon">🔍</div>
+      <div class="skill-info">
+        <div class="skill-name">Peek</div>
+        <div class="skill-desc">Reveal the text of one hidden question from your opponent.</div>
+      </div>
+      <div class="skill-action">
+        <div class="skill-price">◈ 50</div>
+        <button class="buy-btn" id="buy-peek" onclick="buySkill('peek',50)">BUY</button>
+      </div>
+    </div>
+
+    <div class="start-wrap">
+      <button class="start-btn" id="start-btn" onclick="findMatch()">
+        <span>Find Match</span><span style="font-size:16px">⚡</span>
+      </button>
+      <p class="err-msg" id="err-msg"></p>
+    </div>
+  </main>
+
+  <!-- Matchmaking overlay -->
+  <div class="mm-overlay" id="mm-overlay">
+    <div class="mm-ring"></div>
+    <div class="mm-lines">
+      <div class="mm-line" id="mm-1">
+        <span class="mm-icon">📡</span>
+        <span class="mm-label">STATUS</span>
+        <span class="mm-val mm-dots" id="mm-status-val">SCANNING NETWORK</span>
+      </div>
+      <div class="mm-line" id="mm-2">
+        <span class="mm-icon">🎭</span>
+        <span class="mm-label">OPPONENT</span>
+        <span class="mm-val" id="mm-opp-val">—</span>
+      </div>
+      <div class="mm-line" id="mm-3">
+        <span class="mm-icon">📂</span>
+        <span class="mm-label">CASE</span>
+        <span class="mm-val" id="mm-case-val">—</span>
+      </div>
+      <div class="mm-line" id="mm-4">
+        <span class="mm-icon">⚔</span>
+        <span class="mm-label">MATCH</span>
+        <span class="mm-val" id="mm-match-val">—</span>
+      </div>
+    </div>
+    <button class="mm-cancel" id="mm-cancel" onclick="cancelMatch()">Cancel</button>
+  </div>
+
+  <script src="mysteries.js"></script>
+  <script>
+    const skills = { hideQuestion: false, peek: false };
+
+    function refreshPool() {
+      const c = getCurrency();
+      document.getElementById('currency-val').textContent = c.toLocaleString();
+      document.getElementById('pool-display').textContent = c.toLocaleString();
+      const hideBtn = document.getElementById('buy-hide');
+      const peekBtn = document.getElementById('buy-peek');
+      if (!skills.hideQuestion) { hideBtn.className = 'buy-btn'; hideBtn.textContent = 'BUY'; hideBtn.disabled = c < 30; }
+      if (!skills.peek)         { peekBtn.className = 'buy-btn'; peekBtn.textContent = 'BUY'; peekBtn.disabled = c < 50; }
+    }
+    refreshPool();
+
+    function buySkill(skill, cost) {
+      if (skills[skill]) return;
+      const c = getCurrency();
+      if (c < cost) { showErr(`Not enough credits — need ◈ ${cost}`); return; }
+      skills[skill] = true;
+      addCurrency(-cost);
+      const btn = document.getElementById(skill === 'hideQuestion' ? 'buy-hide' : 'buy-peek');
+      const card = document.getElementById(skill === 'hideQuestion' ? 'hide-card' : 'peek-card');
+      btn.textContent = 'EQUIPPED'; btn.className = 'buy-btn owned';
+      card.classList.add('owned');
+      refreshPool();
+    }
+
+    const profileName = getProfileName();
+    const profileDisplay = document.getElementById('profile-display');
+
+    if (profileName) {
+      const player = getOrCreatePlayer(profileName);
+      const tier = getTierInfo(player.rankPoints);
+      profileDisplay.innerHTML = `
+        <div class="profile-card">
+          <div>
+            <div class="profile-name">${escapeHtml(profileName)}</div>
+            <div class="profile-rank-info">
+              <span class="tier-chip" style="background:${tier.color}22;color:${tier.color};border:1px solid ${tier.color}44">${tier.tier}</span>
+              ${player.rankPoints.toLocaleString()} pts &nbsp;·&nbsp; ${player.wins}W / ${player.losses}L
+            </div>
+          </div>
+        </div>`;
+    } else {
+      profileDisplay.innerHTML = `<p class="no-profile-warn">No profile set. <a href="profile.html">Go to Profile</a> to set your name before playing.</p>`;
+      document.getElementById('start-btn').disabled = true;
+    }
+
+    function showErr(msg) {
+      const el = document.getElementById('err-msg');
+      el.textContent = msg;
+      setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3500);
+    }
+
+    let matchTimeout = null;
+
+    const FAKE_OPPONENTS = [
+      'CIPHER', 'VOSS', 'NKOSI', 'HARLOW', 'REYES', 'ELARA', 'DUSK', 'TORINO',
+      'ATLAS', 'KIRA', 'ZEPHYR', 'MONRO', 'SABLE', 'QUINN', 'LYRA', 'DECKER',
+      'ORION', 'VALE', 'HAZE', 'CROSS'
+    ];
+
+    function findMatch() {
+      const p1 = profileName;
+      if (!p1) { showErr('Set your profile name first.'); return; }
+
+      getOrCreatePlayer(p1);
+
+      // Pick random unplayed case
+      const available = getAvailableCompetitive(p1);
+      const mystery = available[Math.floor(Math.random() * available.length)];
+
+      // Pick random opponent (not same as player)
+      let opp;
+      const pool = FAKE_OPPONENTS.filter(n => n.toLowerCase() !== p1.toLowerCase());
+      opp = pool[Math.floor(Math.random() * pool.length)];
+
+      // Show overlay
+      const overlay = document.getElementById('mm-overlay');
+      overlay.classList.add('active');
+      document.getElementById('start-btn').disabled = true;
+
+      // Animate lines
+      const line1 = document.getElementById('mm-1');
+      const line2 = document.getElementById('mm-2');
+      const line3 = document.getElementById('mm-3');
+      const line4 = document.getElementById('mm-4');
+      const statusVal = document.getElementById('mm-status-val');
+      const oppVal = document.getElementById('mm-opp-val');
+      const caseVal = document.getElementById('mm-case-val');
+      const matchVal = document.getElementById('mm-match-val');
+
+      line1.classList.add('visible');
+
+      matchTimeout = setTimeout(() => {
+        statusVal.classList.remove('mm-dots');
+        statusVal.textContent = 'OPPONENT FOUND';
+        line1.classList.add('done');
+        oppVal.textContent = opp;
+        line2.classList.add('visible', 'done');
+      }, 1600);
+
+      matchTimeout = setTimeout(() => {
+        caseVal.textContent = mystery.title.toUpperCase();
+        line3.classList.add('visible', 'done');
+      }, 2600);
+
+      matchTimeout = setTimeout(() => {
+        matchVal.textContent = 'STARTING NOW';
+        line4.classList.add('visible', 'highlight');
+        document.getElementById('mm-cancel').classList.add('hidden');
+      }, 3400);
+
+      matchTimeout = setTimeout(() => {
+        // Mark seen and build match
+        markSeenCompetitive(p1, mystery.id);
+        localStorage.setItem('nd_comp_last_player', p1);
+
+        const match = {
+          mysteryId: mystery.id,
+          players: [
+            { name: p1, questionsLeft: 7, questionsUsed: 0, penalties: 0,
+              skills: { hideQuestion: skills.hideQuestion, peek: skills.peek },
+              hideNextArmed: false, peekActive: false, answeredWrong: false },
+            { name: opp, questionsLeft: 7, questionsUsed: 0, penalties: 0,
+              skills: { hideQuestion: false, peek: false },
+              hideNextArmed: false, peekActive: false, answeredWrong: false }
+          ],
+          currentTurn: 0,
+          feed: [],
+          timeSeconds: 0,
+          gameEnded: false,
+          pendingSignal: false
+        };
+        localStorage.setItem('nd_comp_match', JSON.stringify(match));
+        window.location.href = 'competitive-game.html';
+      }, 4200);
+    }
+
+    function cancelMatch() {
+      clearTimeout(matchTimeout);
+      const overlay = document.getElementById('mm-overlay');
+      overlay.classList.remove('active');
+      document.getElementById('start-btn').disabled = false;
+
+      // Reset lines
+      ['mm-1','mm-2','mm-3','mm-4'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove('visible','done','highlight');
+      });
+      document.getElementById('mm-status-val').classList.add('mm-dots');
+      document.getElementById('mm-status-val').textContent = 'SCANNING NETWORK';
+      document.getElementById('mm-opp-val').textContent  = '—';
+      document.getElementById('mm-case-val').textContent = '—';
+      document.getElementById('mm-match-val').textContent = '—';
+      document.getElementById('mm-cancel').classList.remove('hidden');
+    }
+  </script>
+  <script src="shared.js"></script>
+</body>
+</html>

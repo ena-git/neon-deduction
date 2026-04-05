@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Judge Console — Neon Deduction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0D0D0D;
+      --pink: #FF2D78;
+      --violet: #7B2FFF;
+      --cyan: #00F5FF;
+      --green: #00FF88;
+      --yellow: #FFD700;
+      --red: #FF3333;
+      --text: #E8E8E8;
+      --text-dim: #555;
+      --card-bg: #0F0F0F;
+      --border: #1A1A1A;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* Top bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13,13,13,0.98);
+    }
+
+    .console-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .console-icon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan), 0 0 16px var(--cyan);
+      animation: pulse-cyan 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-cyan {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .console-title h1 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .mode-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .mode-badge.ai {
+      background: rgba(0,245,255,0.1);
+      border: 1px solid rgba(0,245,255,0.3);
+      color: var(--cyan);
+    }
+
+    .mode-badge.manual {
+      background: rgba(255,45,120,0.1);
+      border: 1px solid rgba(255,45,120,0.3);
+      color: var(--pink);
+    }
+
+    .back-btn {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    /* Main layout */
+    .main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 0;
+      min-height: 0;
+    }
+
+    /* Left: question + signals */
+    .left-panel {
+      padding: 32px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    /* Current question */
+    .question-display {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+      min-height: 90px;
+      position: relative;
+    }
+
+    .question-display::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      border-radius: 3px 0 0 3px;
+      background: var(--violet);
+      box-shadow: 0 0 10px var(--violet);
+    }
+
+    .question-text {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.65;
+      color: var(--text);
+    }
+
+    .question-placeholder {
+      font-size: 14px;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    .waiting-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--cyan);
+      letter-spacing: 0.1em;
+    }
+
+    .waiting-indicator.visible { display: flex; }
+
+    .waiting-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      animation: waiting-pulse 1s ease-in-out infinite;
+    }
+
+    .waiting-dot:nth-child(2) { animation-delay: 0.2s; }
+    .waiting-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes waiting-pulse {
+      0%, 100% { opacity: 0.2; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Signal buttons */
+    .signals-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .signal-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 24px 16px;
+      background: var(--card-bg);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+      border: 1px solid var(--border);
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .signal-btn:hover { transform: translateY(-2px); }
+    .signal-btn:active { transform: translateY(0); }
+
+    .signal-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .signal-orb {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+    }
+
+    .signal-btn.green .signal-orb {
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green), 0 0 24px var(--green);
+      animation: orb-pulse-green 2s ease-in-out infinite;
+    }
+    .signal-btn.yellow .signal-orb {
+      background: var(--yellow);
+      box-shadow: 0 0 10px var(--yellow), 0 0 24px var(--yellow);
+      animation: orb-fade-yellow 1.6s ease-in-out infinite;
+    }
+    .signal-btn.red .signal-orb {
+      background: var(--red);
+      box-shadow: 0 0 10px var(--red), 0 0 24px var(--red);
+      animation: orb-flicker-red 0.12s step-end infinite;
+    }
+    .signal-btn.gray .signal-orb {
+      background: #333;
+      box-shadow: none;
+    }
+
+    @keyframes orb-pulse-green {
+      0%, 100% { box-shadow: 0 0 10px var(--green), 0 0 24px var(--green); opacity: 1; }
+      50% { box-shadow: 0 0 4px var(--green); opacity: 0.5; }
+    }
+    @keyframes orb-fade-yellow {
+      0%, 100% { box-shadow: 0 0 10px var(--yellow), 0 0 24px var(--yellow); opacity: 1; }
+      50% { box-shadow: 0 0 4px var(--yellow); opacity: 0.35; }
+    }
+    @keyframes orb-flicker-red {
+      0%   { opacity: 1;    box-shadow: 0 0 12px var(--red), 0 0 28px var(--red); }
+      20%  { opacity: 0.1;  box-shadow: none; }
+      40%  { opacity: 0.9;  box-shadow: 0 0 8px var(--red); }
+      60%  { opacity: 0.05; box-shadow: none; }
+      80%  { opacity: 1;    box-shadow: 0 0 12px var(--red); }
+      100% { opacity: 1;    box-shadow: 0 0 12px var(--red), 0 0 28px var(--red); }
+    }
+
+    .signal-name {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .signal-btn.green  .signal-name { color: var(--green); }
+    .signal-btn.yellow .signal-name { color: var(--yellow); }
+    .signal-btn.red    .signal-name { color: var(--red); }
+    .signal-btn.gray   .signal-name { color: #666; }
+
+    .signal-meaning {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* AI mode overlay for signal buttons */
+    .ai-mode-note {
+      background: rgba(0,245,255,0.04);
+      border: 1px solid rgba(0,245,255,0.15);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-size: 12px;
+      color: var(--cyan);
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .ai-response-display {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 24px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .ai-response-display.visible { display: flex; }
+
+    .ai-response-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .ai-sent-orb {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+    }
+
+    .ai-sent-label {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* Right: history panel */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .history-header {
+      padding: 20px 24px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .history-list::-webkit-scrollbar { width: 4px; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .history-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      animation: entry-slide-in 0.3s ease;
+    }
+
+    @keyframes entry-slide-in {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .h-num {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+
+    .h-text {
+      flex: 1;
+      font-size: 12px;
+      color: #AAA;
+      line-height: 1.5;
+    }
+
+    .h-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    .h-dot.green  { background: var(--green);  box-shadow: 0 0 5px var(--green); }
+    .h-dot.yellow { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); }
+    .h-dot.red    { background: var(--red);    box-shadow: 0 0 5px var(--red); }
+    .h-dot.gray   { background: #333; }
+
+    .history-empty {
+      padding: 32px 24px;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* Status bar at bottom */
+    .status-bar {
+      border-top: 1px solid var(--border);
+      padding: 12px 24px;
+      font-size: 11px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      margin-right: 6px;
+      animation: pulse-cyan 2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="console-title">
+      <div class="console-icon"></div>
+      <h1>Judge Console</h1>
+    </div>
+    <button class="mode-badge ai" id="mode-toggle" onclick="toggleMode()">AI Mode — Auto</button>
+    <a href="mystery-selection.html" class="back-btn">← Cases</a>
+  </div>
+
+  <div class="main">
+    <!-- Left: current question + signal buttons -->
+    <div class="left-panel">
+
+      <!-- Current question -->
+      <div>
+        <div class="section-label">// Incoming Question</div>
+        <div class="question-display">
+          <div class="question-text" id="question-text">
+            <span class="question-placeholder">Waiting for the detective to ask a question...</span>
+          </div>
+          <div class="waiting-indicator" id="waiting-indicator">
+            <div class="waiting-dot"></div>
+            <div class="waiting-dot"></div>
+            <div class="waiting-dot"></div>
+            <span>Receiving question...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI mode note -->
+      <div id="ai-note" class="ai-mode-note">
+        ◈ AI Mode is active. Signals are generated automatically using weighted randomness:<br>
+        Green 25% · Yellow 40% · Red 20% · Gray 15%.<br><br>
+        Switch to <strong>Manual Mode</strong> above to send signals yourself.
+      </div>
+
+      <!-- Last AI response -->
+      <div id="ai-response" class="ai-response-display">
+        <div class="ai-response-label">Signal Sent</div>
+        <div class="ai-sent-orb" id="ai-sent-orb"></div>
+        <div class="ai-sent-label" id="ai-sent-label"></div>
+      </div>
+
+      <!-- Signal buttons (manual mode) -->
+      <div id="signal-section" style="display:none;">
+        <div class="section-label">// Send Signal</div>
+        <div class="signals-grid">
+          <button class="signal-btn green" id="btn-green" onclick="sendSignal('green')" disabled>
+            <div class="signal-orb"></div>
+            <div class="signal-name">Green</div>
+            <div class="signal-meaning">Yes.<br>The answer is yes.</div>
+          </button>
+          <button class="signal-btn yellow" id="btn-yellow" onclick="sendSignal('yellow')" disabled>
+            <div class="signal-orb"></div>
+            <div class="signal-name">Yellow</div>
+            <div class="signal-meaning">Doubtful.<br>Could be yes or no.</div>
+          </button>
+          <button class="signal-btn red" id="btn-red" onclick="sendSignal('red')" disabled>
+            <div class="signal-orb"></div>
+            <div class="signal-name">Red</div>
+            <div class="signal-meaning">No.<br>The answer is no.</div>
+          </button>
+          <button class="signal-btn gray" id="btn-gray" onclick="sendSignal('gray')" disabled>
+            <div class="signal-orb"></div>
+            <div class="signal-name">Gray</div>
+            <div class="signal-meaning">Irrelevant.<br>Not connected to the story.</div>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: signal history -->
+    <div class="right-panel">
+      <div class="history-header">
+        <div class="section-label">// Signal History</div>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="history-empty" id="history-empty">
+          No signals sent yet.<br>History appears here.
+        </div>
+      </div>
+      <div class="status-bar">
+        <span><span class="status-dot"></span>Connected to game</span>
+        <span id="status-mode">AI Mode Active</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="mysteries.js"></script>
+  <script>
+    let currentMode = 'ai';
+    let currentQuestionId = null;
+    let historyCount = 0;
+
+    // Register as judge so game.html knows we're here
+    localStorage.setItem('nd_judge_present', 'true');
+
+    // Signal orb colors
+    const orbConfig = {
+      green:  { bg: '#00FF88', shadow: '0 0 12px #00FF88, 0 0 28px #00FF88', label: 'GREEN' },
+      yellow: { bg: '#FFD700', shadow: '0 0 12px #FFD700, 0 0 28px #FFD700', label: 'YELLOW' },
+      red:    { bg: '#FF3333', shadow: '0 0 12px #FF3333, 0 0 28px #FF3333', label: 'RED' },
+      gray:   { bg: '#333',    shadow: 'none',                                label: 'GRAY' }
+    };
+
+    function toggleMode() {
+      currentMode = currentMode === 'ai' ? 'manual' : 'ai';
+      applyMode();
+    }
+
+    function applyMode() {
+      const badge = document.getElementById('mode-toggle');
+      const aiNote = document.getElementById('ai-note');
+      const signalSection = document.getElementById('signal-section');
+      const statusMode = document.getElementById('status-mode');
+
+      if (currentMode === 'ai') {
+        badge.textContent = 'AI Mode — Auto';
+        badge.className = 'mode-badge ai';
+        aiNote.style.display = '';
+        signalSection.style.display = 'none';
+        statusMode.textContent = 'AI Mode Active';
+        localStorage.setItem('nd_judge_present', 'false');
+      } else {
+        badge.textContent = 'Manual Mode — Judge';
+        badge.className = 'mode-badge manual';
+        aiNote.style.display = 'none';
+        signalSection.style.display = '';
+        statusMode.textContent = 'Manual Mode Active';
+        localStorage.setItem('nd_judge_present', 'true');
+      }
+    }
+
+    function setButtonsEnabled(enabled) {
+      ['btn-green', 'btn-yellow', 'btn-red', 'btn-gray'].forEach(id => {
+        document.getElementById(id).disabled = !enabled;
+      });
+    }
+
+    function sendSignal(signal) {
+      if (!currentQuestionId) return;
+
+      const resp = { questionId: currentQuestionId, signal, source: 'judge', timestamp: Date.now() };
+      localStorage.setItem('nd_signal_response', JSON.stringify(resp));
+
+      showAiResponse(signal);
+      addHistoryEntry(currentQuestionId, document.getElementById('question-text').textContent.trim(), signal);
+      currentQuestionId = null;
+      setButtonsEnabled(false);
+    }
+
+    function showAiResponse(signal) {
+      const orb = document.getElementById('ai-sent-orb');
+      const label = document.getElementById('ai-sent-label');
+      const cfg = orbConfig[signal];
+      const responseEl = document.getElementById('ai-response');
+
+      orb.style.background = cfg.bg;
+      orb.style.boxShadow = cfg.shadow;
+      label.textContent = cfg.label;
+      label.style.color = cfg.bg;
+
+      responseEl.classList.add('visible');
+    }
+
+    function addHistoryEntry(id, question, signal) {
+      const list = document.getElementById('history-list');
+      document.getElementById('history-empty').style.display = 'none';
+
+      historyCount++;
+      const entry = document.createElement('div');
+      entry.className = 'history-entry';
+      entry.innerHTML = `
+        <div class="h-num">Q.${String(historyCount).padStart(2, '0')}</div>
+        <div class="h-text">${escapeHtml(question)}</div>
+        <div class="h-dot ${signal}"></div>
+      `;
+      list.appendChild(entry);
+      list.scrollTop = list.scrollHeight;
+    }
+
+    // Poll for new questions from game.html
+    function pollForQuestion() {
+      const raw = localStorage.getItem('nd_pending_question');
+      if (!raw) return;
+
+      try {
+        const q = JSON.parse(raw);
+
+        if (q.id === currentQuestionId) return; // Already handling
+
+        currentQuestionId = q.id;
+        const qEl = document.getElementById('question-text');
+        qEl.innerHTML = '';
+        qEl.textContent = q.text;
+
+        if (currentMode === 'ai') {
+          // Auto-generate signal using deterministic judge
+          setTimeout(() => {
+            const mysteryId = localStorage.getItem('nd_current_mystery') || '';
+            const signal = judgeQuestion(mysteryId, q.text);
+            const resp = { questionId: currentQuestionId, signal, source: 'ai', timestamp: Date.now() };
+            localStorage.setItem('nd_signal_response', JSON.stringify(resp));
+            showAiResponse(signal);
+            addHistoryEntry(currentQuestionId, q.text, signal);
+            currentQuestionId = null;
+            localStorage.removeItem('nd_pending_question');
+          }, 600 + Math.random() * 900);
+
+        } else {
+          // Manual: enable buttons
+          document.getElementById('ai-response').classList.remove('visible');
+          setButtonsEnabled(true);
+        }
+
+      } catch (_) {}
+    }
+
+    // Load history from localStorage on init
+    function loadHistory() {
+      const raw = localStorage.getItem('nd_signal_history');
+      if (!raw) return;
+      try {
+        const history = JSON.parse(raw);
+        history.forEach((h, i) => {
+          addHistoryEntry(h.entryId, `Question ${i + 1}`, h.signal);
+        });
+      } catch (_) {}
+    }
+
+    loadHistory();
+    applyMode();
+    setInterval(pollForQuestion, 300);
+
+    // Clean up on page unload
+    window.addEventListener('beforeunload', () => {
+      if (currentMode !== 'manual') {
+        localStorage.setItem('nd_judge_present', 'false');
+      }
+    });
+  </script>
+</body>
+</html>

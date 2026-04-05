@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meetup Mode — Neon Deduction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0D0D0D;
+      --pink: #FF2D78;
+      --violet: #7B2FFF;
+      --cyan: #00F5FF;
+      --green: #00FF88;
+      --yellow: #FFD700;
+      --text: #E8E8E8;
+      --text-dim: #5A5A6E;
+      --card-bg: #111116;
+      --border: #21212A;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px
+      );
+      pointer-events: none; z-index: 100;
+    }
+
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,136,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: grid-drift 30s linear infinite;
+    }
+    @keyframes grid-drift {
+      from { background-position: 0 0; }
+      to   { background-position: 48px 48px; }
+    }
+
+    .bg-glow {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse 700px 400px at 50% 10%, rgba(0,255,136,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .bg-glow::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 160px;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,245,255,0.04) 35%, rgba(0,245,255,0.06) 50%, rgba(0,245,255,0.04) 65%, transparent 100%);
+      animation: beam-sweep 16s linear infinite;
+    }
+    @keyframes beam-sweep {
+      0%   { transform: translateY(-160px); opacity: 0; }
+      4%   { opacity: 1; }
+      70%  { opacity: 1; }
+      80%  { transform: translateY(100vh); opacity: 0; }
+      100% { transform: translateY(100vh); opacity: 0; }
+    }
+
+    /* Top bar */
+    .top-bar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px;
+      background: rgba(13,13,13,0.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .back-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: none; border: none;
+      color: var(--text-dim);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px; font-weight: 500; letter-spacing: 0.1em;
+      cursor: pointer; text-decoration: none;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    .top-title {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.35em;
+      text-transform: uppercase; color: var(--text-dim);
+    }
+
+    /* Page header */
+    .page-header {
+      padding: 48px 40px 28px;
+      position: relative; z-index: 5;
+    }
+
+    .page-eyebrow {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.3em;
+      color: var(--green); text-transform: uppercase; margin-bottom: 10px;
+      text-shadow: 0 0 14px rgba(0,255,136,0.7);
+    }
+
+    .page-title {
+      font-size: 36px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;
+    }
+
+    .page-subtitle {
+      font-size: 14px; color: var(--text-dim); margin-top: 8px;
+    }
+
+    .header-rule {
+      height: 1px;
+      background: linear-gradient(90deg, var(--green) 0%, transparent 60%);
+      margin-top: 28px; opacity: 0.4;
+    }
+
+    /* Case list */
+    .case-list {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 24px 40px 60px;
+      position: relative; z-index: 5;
+    }
+
+    .case-row {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px 24px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: border-color 0.25s, transform 0.2s;
+      user-select: none;
+    }
+
+    .case-row:hover { border-color: rgba(0,255,136,0.3); transform: translateX(2px); }
+    .case-row.open  { border-color: rgba(0,255,136,0.45); }
+
+    .case-row-left { display: flex; flex-direction: column; gap: 4px; }
+
+    .case-row-number {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.25em;
+      color: var(--text-dim); text-transform: uppercase;
+    }
+
+    .case-row-title {
+      font-size: 16px; font-weight: 700; letter-spacing: 0.01em;
+    }
+
+    .case-row-right { display: flex; align-items: center; gap: 12px; }
+
+    .difficulty-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.2em;
+      text-transform: uppercase; padding: 3px 8px; border-radius: 3px;
+    }
+    .difficulty-badge.easy   { color: var(--green);  background: rgba(0,255,136,0.08);  border: 1px solid rgba(0,255,136,0.2); }
+    .difficulty-badge.medium { color: var(--yellow); background: rgba(255,215,0,0.08);  border: 1px solid rgba(255,215,0,0.2); }
+    .difficulty-badge.hard   { color: var(--pink);   background: rgba(255,45,120,0.08); border: 1px solid rgba(255,45,120,0.2); }
+
+    .row-chevron {
+      font-size: 14px; color: var(--text-dim);
+      transition: transform 0.25s, color 0.2s;
+    }
+    .case-row.open .row-chevron { transform: rotate(90deg); color: var(--green); }
+
+    /* Detail panel — expands below the row */
+    .case-detail {
+      display: none;
+      background: rgba(0,255,136,0.02);
+      border: 1px solid rgba(0,255,136,0.12);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      padding: 24px;
+      margin-top: -10px; /* overlap the row bottom radius */
+    }
+    .case-detail.open { display: block; }
+
+    .detail-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--green); margin-bottom: 10px;
+      text-shadow: 0 0 10px rgba(0,255,136,0.5);
+    }
+
+    .detail-text {
+      font-size: 14px; line-height: 1.75; color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    .detail-divider {
+      height: 1px;
+      background: linear-gradient(90deg, rgba(0,255,136,0.2), transparent);
+      margin-bottom: 20px;
+    }
+
+    /* Truth section */
+    .truth-section { }
+
+    .truth-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--pink); margin-bottom: 10px;
+      text-shadow: 0 0 10px rgba(255,45,120,0.5);
+    }
+
+    .truth-hidden {
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+      border: 1px dashed rgba(255,45,120,0.2);
+      border-radius: 4px;
+      color: var(--text-dim);
+      font-size: 12px; letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .truth-hidden:hover { border-color: rgba(255,45,120,0.4); color: var(--pink); }
+
+    .truth-revealed {
+      display: none;
+      font-size: 14px; line-height: 1.75; color: var(--text);
+    }
+    .truth-revealed.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="top-bar">
+    <a href="hub.html" class="back-btn">← Back</a>
+    <span class="top-title">Meetup Mode</span>
+    <span></span>
+  </div>
+
+  <div class="page-header">
+    <p class="page-eyebrow">// Host View</p>
+    <h1 class="page-title">Choose a Case</h1>
+    <p class="page-subtitle">You see the full story. Your friends ask Yes/No questions.</p>
+    <div class="header-rule"></div>
+  </div>
+
+  <div class="case-list" id="case-list"></div>
+
+  <script src="mysteries.js"></script>
+  <script>
+    const list = document.getElementById('case-list');
+
+    MYSTERIES.forEach(m => {
+      // Wrapper holds both the row and the expandable detail
+      const wrapper = document.createElement('div');
+
+      // Row
+      const row = document.createElement('div');
+      row.className = 'case-row';
+      row.innerHTML = `
+        <div class="case-row-left">
+          <span class="case-row-number">${escapeHtml(m.caseNumber)}</span>
+          <span class="case-row-title">${escapeHtml(m.title)}</span>
+        </div>
+        <div class="case-row-right">
+          <span class="difficulty-badge ${m.difficultyClass}">${escapeHtml(m.difficulty)}</span>
+          <span class="row-chevron">›</span>
+        </div>
+      `;
+
+      // Detail panel
+      const detail = document.createElement('div');
+      detail.className = 'case-detail';
+      detail.innerHTML = `
+        <p class="detail-label">// Surface Story — read this aloud</p>
+        <p class="detail-text">${escapeHtml(m.scenario)}</p>
+        <div class="detail-divider"></div>
+        <div class="truth-section">
+          <p class="truth-label">// Hidden Truth</p>
+          <div class="truth-hidden" id="truth-toggle-${m.id}" onclick="revealTruth('${m.id}')">
+            Tap to reveal the answer
+          </div>
+          <p class="truth-revealed" id="truth-text-${m.id}">${escapeHtml(m.truth)}</p>
+        </div>
+      `;
+
+      row.addEventListener('click', () => {
+        const isOpen = row.classList.contains('open');
+        // Close all others
+        document.querySelectorAll('.case-row.open').forEach(r => r.classList.remove('open'));
+        document.querySelectorAll('.case-detail.open').forEach(d => d.classList.remove('open'));
+        if (!isOpen) {
+          row.classList.add('open');
+          detail.classList.add('open');
+          // Reset truth visibility when reopening
+          document.getElementById('truth-toggle-' + m.id).style.display = 'flex';
+          document.getElementById('truth-text-' + m.id).classList.remove('show');
+        }
+      });
+
+      wrapper.appendChild(row);
+      wrapper.appendChild(detail);
+      list.appendChild(wrapper);
+    });
+
+    function revealTruth(id) {
+      document.getElementById('truth-toggle-' + id).style.display = 'none';
+      document.getElementById('truth-text-' + id).classList.add('show');
+    }
+  </script>
+</body>
+</html>
