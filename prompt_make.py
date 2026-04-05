@@ -99,6 +99,7 @@ Return one of these verdicts:
 - YES: the question is supported by the hidden truth.
 - NO: the question is contradicted by the hidden truth.
 - IRRELEVANT: the question asks about something not established by the hidden truth, or not meaningfully related to solving the puzzle.
+- DOUBTFUL: the question is not fully supported bt the hidden truth, but neither fully contradicted by the hidden truth.
 
 Rules:
 1. Use hidden_truth as the main source of truth.
@@ -130,7 +131,7 @@ Full data:
 
 Output format:
 {{
-  "verdict": "YES | NO | IRRELEVANT",
+  "verdict": "YES | NO | IRRELEVAN | DOUBTFUL",
   "clarification": "short explanation"
 }}
 
@@ -171,6 +172,22 @@ Output:
   "verdict": "IRRELEVANT",
   "clarification": "The hidden truth gives no information about the chef being his brother."
 }}
+
+Example 4
+Question: is he a transgender?
+
+Output:
+{{
+    "verdict": "DOUBTFUL",
+    "clarification": "The hidden truth does not provide any information about
+}}
+
+
+REMEMBER:
+- IRRELEVANT: the question asks about something not established by the hidden truth, or not meaningfully related to solving the puzzle.
+- DOUBTFUL: the question is not fully supported bt the hidden truth, but neither fully contradicted by the hidden truth.
+
+**ANSWER NO ONLY IN SITUATION WHERE THE HIDDEN TRUTH CLEARLY CONTRADICTS THE QUESTION. IF THE HIDDEN TRUTH DOES NOT FULLY SUPPORT THE QUESTION, BUT ALSO DOES NOT FULLY CONTRADICT THE QUESTION, ANSWER DOUBTFUL INSTEAD OF NO.**
 
 Now answer the player question.
 """
