@@ -99,6 +99,7 @@ Return one of these verdicts:
 - YES: the question is supported by the hidden truth.
 - NO: the question is contradicted by the hidden truth.
 - IRRELEVANT: the question asks about something not established by the hidden truth, or not meaningfully related to solving the puzzle.
+- DOUBTFUL: the question is not fully supported bt the hidden truth, but neither fully contradicted by the hidden truth.
 
 Rules:
 1. Use hidden_truth as the main source of truth.
@@ -130,7 +131,7 @@ Full data:
 
 Output format:
 {{
-  "verdict": "YES | NO | IRRELEVANT",
+  "verdict": "YES | NO | IRRELEVANT | DOUBTFUL",
   "clarification": "short explanation"
 }}
 
