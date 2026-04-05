@@ -131,7 +131,11 @@ Full data:
 
 Output format:
 {{
+<<<<<<< HEAD
   "verdict": "YES | NO | IRRELEVAN | DOUBTFUL",
+=======
+  "verdict": "YES | NO | IRRELEVANT | DOUBTFUL",
+>>>>>>> 4644b0bf1319fdd1cc0d9cfe64dff1a04b87f5f3
   "clarification": "short explanation"
 }}
 

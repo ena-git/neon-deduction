@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile — Neon Deduction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0D0D0D; --pink: #FF2D78; --violet: #7B2FFF;
+      --cyan: #00F5FF; --green: #00FF88; --yellow: #FFD700;
+      --red: #FF3333; --text: #E8E8E8; --text-dim: #5A5A6E;
+      --card-bg: #111116; --border: #21212A;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Space Grotesk', sans-serif; min-height: 100vh;
+    }
+
+    /* Scanlines */
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+      pointer-events: none; z-index: 100;
+    }
+
+    /* Ambient glow */
+    .bg-glow {
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse 700px 500px at 50% 0%, rgba(123,47,255,0.09) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .bg-glow::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 160px;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,245,255,0.04) 35%, rgba(0,245,255,0.06) 50%, rgba(0,245,255,0.04) 65%, transparent 100%);
+      animation: beam-sweep 16s linear infinite;
+    }
+    @keyframes beam-sweep {
+      0%   { transform: translateY(-160px); opacity: 0; }
+      4%   { opacity: 1; }
+      70%  { opacity: 1; }
+      80%  { transform: translateY(100vh); opacity: 0; }
+      100% { transform: translateY(100vh); opacity: 0; }
+    }
+
+    /* City grid */
+    .bg-grid {
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(123,47,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(123,47,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: grid-drift 34s linear infinite;
+    }
+    @keyframes grid-drift {
+      from { background-position: 0 0; }
+      to   { background-position: 48px 48px; }
+    }
+
+    /* Top bar */
+    .top-bar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px;
+      background: rgba(13,13,13,0.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .top-logo {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase;
+      background: linear-gradient(90deg, var(--pink), var(--violet));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      text-decoration: none; display: flex; align-items: center; gap: 8px;
+    }
+    .top-logo svg { flex-shrink: 0; }
+    .top-title {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.35em;
+      text-transform: uppercase; color: var(--text-dim);
+    }
+    .top-settings {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-dim); text-decoration: none; transition: color 0.2s;
+    }
+    .top-settings:hover { color: var(--cyan); }
+
+    /* Main */
+    .main {
+      position: relative; z-index: 5;
+      max-width: 560px;
+      padding: 40px 40px 100px;
+    }
+
+    /* ── SETUP PROMPT ────────────────────────────────────────── */
+    .setup-card {
+      background: rgba(123,47,255,0.06); border: 1px solid rgba(123,47,255,0.2);
+      border-radius: 8px; padding: 36px; text-align: center;
+      margin-top: 16px;
+    }
+    .setup-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    .setup-card p  { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.6; }
+    .setup-input {
+      width: 100%; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(123,47,255,0.3); border-radius: 6px;
+      color: var(--text); font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px; font-weight: 600;
+      padding: 12px 16px; outline: none; margin-bottom: 14px; text-align: center;
+    }
+    .setup-input:focus { border-color: var(--violet); }
+    .setup-save-btn {
+      padding: 12px 40px; background: transparent;
+      border: 1px solid var(--violet); color: var(--violet);
+      font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase; border-radius: 4px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .setup-save-btn:hover { background: var(--violet); color: #fff; }
+
+    /* ── AVATAR HERO ─────────────────────────────────────────── */
+    .avatar-hero {
+      display: flex; align-items: center; gap: 24px;
+      padding: 28px 28px;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 8px; margin-bottom: 16px; position: relative; overflow: hidden;
+    }
+    /* Tier-colored glow strip across top — set via JS */
+    .avatar-hero::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: var(--hero-accent, transparent);
+    }
+
+    .avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 700; flex-shrink: 0;
+      border: 2px solid;
+      /* colors set via JS */
+    }
+
+    .hero-info { flex: 1; min-width: 0; }
+
+    .username-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    }
+    .username {
+      font-size: 24px; font-weight: 700; letter-spacing: -0.01em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .edit-btn {
+      background: none; border: 1px solid var(--border); color: var(--text-dim);
+      font-family: 'Space Grotesk', sans-serif; font-size: 9px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase; padding: 3px 8px;
+      border-radius: 3px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+    }
+    .edit-btn:hover { border-color: var(--violet); color: var(--violet); }
+
+    .username-edit-row {
+      display: none; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .username-edit-row.active { display: flex; }
+    .username-input {
+      flex: 1; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(123,47,255,0.4); border-radius: 4px;
+      color: var(--text); font-family: 'Space Grotesk', sans-serif;
+      font-size: 17px; font-weight: 700; padding: 5px 10px; outline: none;
+    }
+    .save-btn {
+      background: var(--violet); border: none; color: #fff;
+      font-family: 'Space Grotesk', sans-serif; font-size: 9px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase; padding: 7px 12px;
+      border-radius: 3px; cursor: pointer; transition: box-shadow 0.2s;
+    }
+    .save-btn:hover { box-shadow: 0 0 16px rgba(123,47,255,0.5); }
+
+    .tier-row { display: flex; align-items: center; gap: 10px; }
+    .tier-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 3px; border: 1px solid;
+    }
+    .rank-pts { font-size: 12px; color: var(--text-dim); }
+
+    /* ── STATS GRID ──────────────────────────────────────────── */
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 7px; padding: 18px 20px;
+      display: flex; align-items: center; gap: 14px;
+      border-left-width: 3px;
+    }
+    .stats-grid .stat-card:nth-child(1) { border-left-color: rgba(0,245,255,0.35); }
+    .stats-grid .stat-card:nth-child(2) { border-left-color: rgba(255,215,0,0.35); }
+    .stats-grid .stat-card:nth-child(3) { border-left-color: rgba(123,47,255,0.35); }
+    .stats-grid .stat-card:nth-child(4) { border-left-color: rgba(0,255,136,0.35); }
+    .stat-icon {
+      font-size: 20px; flex-shrink: 0; opacity: 0.85;
+    }
+    .stat-body { display: flex; flex-direction: column; gap: 3px; }
+    .stat-val {
+      font-size: 22px; font-weight: 700; line-height: 1;
+    }
+    .stat-lbl {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--text-dim);
+    }
+
+    /* ── COMPETITIVE ROW ─────────────────────────────────────── */
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--text-dim);
+      margin-bottom: 12px; margin-top: 20px;
+    }
+
+    .comp-row {
+      display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 7px; overflow: hidden; margin-bottom: 16px;
+    }
+    .comp-divider { background: var(--border); }
+    .comp-stat { padding: 16px 0; text-align: center; }
+    .comp-val { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .comp-lbl {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--text-dim);
+    }
+
+    /* ── PRACTICE PROGRESS ───────────────────────────────────── */
+    .progress-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 7px; padding: 18px 20px; margin-bottom: 16px;
+    }
+    .progress-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .progress-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--text-dim);
+    }
+    .progress-frac { font-size: 13px; font-weight: 600; color: var(--cyan); }
+    .progress-bar {
+      height: 4px; background: rgba(255,255,255,0.09); border-radius: 2px; overflow: hidden;
+    }
+    .progress-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+
+    /* ── NIGHT MARKET ENTRY ──────────────────────────────────── */
+    .market-card {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card-bg); border: 1px solid rgba(255,45,120,0.15);
+      border-radius: 7px; padding: 20px 20px;
+      text-decoration: none; color: inherit;
+      position: relative; overflow: hidden;
+      transition: border-color 0.25s, transform 0.2s;
+      margin-bottom: 16px;
+    }
+    .market-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,45,120,0.04) 0%, transparent 60%);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .market-card::after {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--pink), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .market-card:hover {
+      border-color: rgba(255,45,120,0.4); transform: translateY(-2px);
+    }
+    .market-card:hover::before { opacity: 1; }
+    .market-card:hover::after  { opacity: 1; }
+    .market-card-body {
+      display: flex; align-items: center; gap: 16px; position: relative; z-index: 1;
+    }
+    .market-icon {
+      width: 42px; height: 42px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      background: rgba(255,45,120,0.08); border: 1px solid rgba(255,45,120,0.18);
+    }
+    .market-info { display: flex; flex-direction: column; gap: 4px; }
+    .market-name  { font-size: 15px; font-weight: 700; color: var(--pink); }
+    .market-desc  { font-size: 12px; color: var(--text-dim); }
+    .market-arrow {
+      font-size: 18px; color: var(--text-dim); position: relative; z-index: 1;
+      transition: transform 0.2s, color 0.2s;
+    }
+    .market-card:hover .market-arrow { transform: translateX(4px); color: var(--pink); }
+
+    /* ── BOTTOM NAV ──────────────────────────────────────────── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      display: flex; align-items: stretch;
+      background: rgba(13,13,13,0.97); backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border); height: 64px;
+    }
+    .nav-tab {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 5px;
+      text-decoration: none; color: var(--text-dim);
+      font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
+      transition: color 0.2s; position: relative;
+    }
+    .nav-tab::after {
+      content: ''; position: absolute; top: 0; left: 25%; right: 25%;
+      height: 1px; background: currentColor; opacity: 0; transition: opacity 0.2s;
+    }
+    .nav-tab:hover { color: var(--text); }
+    .nav-tab.active { color: var(--cyan); }
+    .nav-tab.active::after { opacity: 0.7; }
+    .nav-icon { font-size: 16px; line-height: 1; }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="top-bar">
+    <a href="index.html" class="top-logo">
+      Neon Deduction
+    </a>
+    <span class="top-title">Profile</span>
+    <a href="settings.html" class="top-settings">Settings ⚙</a>
+  </div>
+
+  <main class="main">
+
+    <!-- Setup prompt -->
+    <div id="setup-section" style="display:none">
+      <div class="setup-card">
+        <h2>Set Your Callsign</h2>
+        <p>Create your detective profile to track your rank, wins, and solved mysteries.</p>
+        <input id="setup-input" class="setup-input" type="text" maxlength="20" placeholder="Enter callsign…" autocomplete="off" />
+        <button class="setup-save-btn" onclick="saveSetup()">Create Profile →</button>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div id="profile-section" style="display:none">
+
+      <!-- Avatar hero -->
+      <div class="avatar-hero" id="avatar-hero">
+        <div class="avatar" id="avatar"></div>
+        <div class="hero-info">
+          <div class="username-row" id="username-display-row">
+            <span class="username" id="username-display"></span>
+            <button class="edit-btn" onclick="startEdit()">Edit</button>
+          </div>
+          <div class="username-edit-row" id="username-edit-row">
+            <input class="username-input" id="username-edit-input" type="text" maxlength="20" autocomplete="off" />
+            <button class="save-btn" onclick="saveEdit()">Save</button>
+          </div>
+          <div class="tier-row">
+            <span class="tier-badge" id="tier-badge"></span>
+            <span class="rank-pts" id="rank-pts"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-icon">◎</span>
+          <div class="stat-body">
+            <div class="stat-val" id="stat-score" style="color:var(--cyan)">0</div>
+            <div class="stat-lbl">Total Score</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">◈</span>
+          <div class="stat-body">
+            <div class="stat-val" id="stat-currency" style="color:var(--yellow)">0</div>
+            <div class="stat-lbl">Credits</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">⬡</span>
+          <div class="stat-body">
+            <div class="stat-val" id="stat-cases" style="color:var(--violet)">0</div>
+            <div class="stat-lbl">Cases Played</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">⚖</span>
+          <div class="stat-body">
+            <div class="stat-val" id="stat-judge" style="color:var(--green)">0</div>
+            <div class="stat-lbl">Times as Judge</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Competitive record -->
+      <p class="section-label">// Competitive Record</p>
+      <div class="comp-row">
+        <div class="comp-stat">
+          <div class="comp-val" id="comp-wins" style="color:var(--green)">0</div>
+          <div class="comp-lbl">Wins</div>
+        </div>
+        <div class="comp-divider"></div>
+        <div class="comp-stat">
+          <div class="comp-val" id="comp-losses" style="color:var(--red)">0</div>
+          <div class="comp-lbl">Losses</div>
+        </div>
+        <div class="comp-divider"></div>
+        <div class="comp-stat">
+          <div class="comp-val" id="comp-winrate" style="color:var(--yellow)">—</div>
+          <div class="comp-lbl">Win Rate</div>
+        </div>
+      </div>
+
+      <!-- Practice progress -->
+      <div class="progress-card">
+        <div class="progress-header">
+          <span class="progress-title">// Practice Cases</span>
+          <span class="progress-frac" id="practice-frac">0 / 0</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="practice-bar" style="background:var(--cyan);width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Night Market entry -->
+      <p class="section-label">// Night Market</p>
+      <a href="night-market.html" class="market-card">
+        <div class="market-card-body">
+          <div class="market-icon">◈</div>
+          <div class="market-info">
+            <span class="market-name">Night Market</span>
+            <span class="market-desc">Spend credits on avatar icons, borders, and profile titles</span>
+          </div>
+        </div>
+        <span class="market-arrow">→</span>
+      </a>
+
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="hub.html" class="nav-tab">
+      <span class="nav-icon">◈</span>
+      Cases
+    </a>
+    <a href="leaderboard.html" class="nav-tab">
+      <span class="nav-icon">▲</span>
+      Rankings
+    </a>
+    <a href="profile.html" class="nav-tab active">
+      <span class="nav-icon">○</span>
+      Profile
+    </a>
+  </nav>
+
+  <script src="mysteries.js"></script>
+  <script>
+    function getInitials(name) {
+      return name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    function render() {
+      const name = getProfileName();
+      if (!name) {
+        document.getElementById('setup-section').style.display = 'block';
+        document.getElementById('profile-section').style.display = 'none';
+        return;
+      }
+      document.getElementById('setup-section').style.display = 'none';
+      document.getElementById('profile-section').style.display = 'block';
+
+      const player = getOrCreatePlayer(name);
+      const tier   = getTierInfo(player.rankPoints);
+
+      // Avatar hero — use equipped SVG avatar or initials fallback
+      const avatarEl = document.getElementById('avatar');
+      const equippedAvatarId = localStorage.getItem('nd_equipped_player-avatar');
+      const equippedBorderId = localStorage.getItem('nd_equipped_border');
+      const borderColors = { 'br-crimson': '#FF2D78', 'br-violet': '#7B2FFF', 'br-gold': '#FFD700', 'br-cyan': '#00F5FF' };
+      const borderColor = equippedBorderId ? (borderColors[equippedBorderId] || tier.color) : tier.color;
+
+      const AVATAR_SVGS = {
+        'pa-sleuth':  `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10,28 L50,28 L46,32 L14,32Z" fill="#00F5FF" opacity="0.9"/><rect x="18" y="10" width="24" height="18" rx="2" fill="#00F5FF" opacity="0.9"/><rect x="18" y="22" width="24" height="4" fill="#0D0D0D"/><rect x="18" y="22" width="24" height="4" fill="#7B2FFF" opacity="0.7"/><ellipse cx="30" cy="42" rx="12" ry="11" fill="#0a0a14" stroke="#00F5FF" stroke-width="1.2"/><ellipse cx="25" cy="40" rx="3" ry="2.5" fill="#00F5FF" opacity="0.9"/><ellipse cx="35" cy="40" rx="3" ry="2.5" fill="#00F5FF" opacity="0.9"/><circle cx="25" cy="40" r="1.2" fill="#0a0a14"/><circle cx="35" cy="40" r="1.2" fill="#0a0a14"/><path d="M25,48 Q30,51 35,48" stroke="#7B2FFF" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M18,53 L22,49 L30,52 L38,49 L42,53" stroke="#00F5FF" stroke-width="1" fill="none"/></svg>`,
+        'pa-cipher':  `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="28" rx="14" ry="16" fill="#0a0a14" stroke="#FF2D78" stroke-width="1.5"/><rect x="16" y="23" width="28" height="8" rx="4" fill="#FF2D78" opacity="0.85"/><rect x="18" y="24.5" width="24" height="5" rx="3" fill="#0a0a14" opacity="0.6"/><line x1="18" y1="27" x2="42" y2="27" stroke="#FF2D78" stroke-width="0.8" opacity="0.7"/><line x1="24" y1="36" x2="36" y2="36" stroke="#FF2D78" stroke-width="1" opacity="0.6"/><line x1="25" y1="38.5" x2="35" y2="38.5" stroke="#FF2D78" stroke-width="0.7" opacity="0.4"/><line x1="30" y1="44" x2="30" y2="50" stroke="#FF2D78" stroke-width="1.2"/><path d="M18,54 L22,50 L30,52 L38,50 L42,54" stroke="#FF2D78" stroke-width="1" fill="none"/></svg>`,
+        'pa-phantom': `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16,52 L14,36 C13,22 18,10 30,8 C42,10 47,22 46,36 L44,52Z" fill="#0a0a14" stroke="#7B2FFF" stroke-width="1.5"/><path d="M20,52 L19,37 C18,26 22,16 30,14 C38,16 42,26 41,37 L40,52Z" fill="#07011c"/><path d="M17,34 C17,26 22,20 30,20 L30,42 C23,42 17,40 17,34Z" fill="#0a0a14" stroke="#7B2FFF" stroke-width="1.2"/><ellipse cx="23" cy="32" rx="4" ry="3" fill="#07011c" stroke="#7B2FFF" stroke-width="1"/><ellipse cx="23" cy="32" rx="1.5" ry="1.5" fill="#7B2FFF" opacity="0.9"/><ellipse cx="37" cy="32" rx="4" ry="3" fill="none" stroke="#00F5FF" stroke-width="1"/><ellipse cx="37" cy="32" rx="1.5" ry="1.5" fill="#00F5FF" opacity="0.9"/><path d="M26,40 L34,40" stroke="#7B2FFF" stroke-width="1" opacity="0.6"/></svg>`,
+        'pa-wraith':  `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22,10 C16,14 13,22 14,32 C15,42 18,50 20,56 C22,58 24,56 24,54 C24,56 26,58 28,56 C28,58 30,60 32,58 C32,60 34,58 36,56 C36,58 38,56 40,54 C40,56 42,58 44,56 C46,50 45,42 46,32 C47,22 44,14 38,10 C34,7 26,7 22,10Z" fill="#0a0a14" stroke="#00F5FF" stroke-width="1.2"/><ellipse cx="24" cy="28" rx="5" ry="6" fill="#00F5FF" opacity="0.12"/><ellipse cx="36" cy="28" rx="5" ry="6" fill="#00F5FF" opacity="0.12"/><circle cx="24" cy="28" r="2" fill="#00F5FF" opacity="0.9"/><circle cx="36" cy="28" r="2" fill="#00F5FF" opacity="0.9"/><path d="M22,38 C24,36 28,37 30,36 C32,37 36,36 38,38" stroke="#00F5FF" stroke-width="1" fill="none" stroke-linecap="round"/></svg>`,
+        'pa-rogue':   `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="32" rx="14" ry="15" fill="#0a0a14" stroke="#FFD700" stroke-width="1.3"/><path d="M22,22 L38,42" stroke="#FF2D78" stroke-width="1.2" opacity="0.7" stroke-linecap="round"/><path d="M22,29 C23,27 27,27 28,29" stroke="#FFD700" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="36" cy="30" rx="3.5" ry="3" fill="#0a0a14" stroke="#FFD700" stroke-width="1.2"/><circle cx="36" cy="30" r="1.4" fill="#FFD700" opacity="0.9"/><path d="M24,40 C27,38 31,39 34,41" stroke="#FFD700" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M16,50 L20,44 L30,47 L40,44 L44,50" stroke="#FFD700" stroke-width="1.2" fill="none"/></svg>`,
+        'pa-oracle':  `<svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M27,12 L30,8 L33,12 L30,15Z" fill="#7B2FFF" opacity="0.95"/><ellipse cx="30" cy="32" rx="14" ry="16" fill="#0a0a14" stroke="#7B2FFF" stroke-width="1.3"/><circle cx="23" cy="30" r="5" fill="none" stroke="#7B2FFF" stroke-width="1"/><circle cx="23" cy="30" r="2.5" fill="#7B2FFF" opacity="0.8"/><circle cx="23" cy="30" r="0.9" fill="#0a0a14"/><circle cx="37" cy="30" r="5" fill="none" stroke="#7B2FFF" stroke-width="1"/><circle cx="37" cy="30" r="2.5" fill="#7B2FFF" opacity="0.8"/><circle cx="37" cy="30" r="0.9" fill="#0a0a14"/><line x1="25" y1="40" x2="35" y2="40" stroke="#7B2FFF" stroke-width="1" opacity="0.6"/><path d="M18,50 L22,46 L30,48 L38,46 L42,50" stroke="#7B2FFF" stroke-width="1" fill="none"/></svg>`,
+      };
+
+      if (equippedAvatarId && AVATAR_SVGS[equippedAvatarId]) {
+        avatarEl.innerHTML = AVATAR_SVGS[equippedAvatarId];
+        avatarEl.style.cssText = `
+          width:72px;height:72px;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          flex-shrink:0;border:2px solid;overflow:hidden;
+          background:#07011c;border-color:${borderColor}88;
+          box-shadow:0 0 14px ${borderColor}44;
+        `;
+        const svg = avatarEl.querySelector('svg');
+        if (svg) { svg.style.width = '100%'; svg.style.height = '100%'; }
+      } else {
+        avatarEl.textContent = getInitials(name);
+        avatarEl.style.cssText = `
+          width:72px;height:72px;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          font-size:26px;font-weight:700;flex-shrink:0;border:2px solid;
+          background:${tier.color}18;border-color:${borderColor}55;
+          color:${tier.color};text-shadow:0 0 14px ${tier.glow};
+        `;
+      }
+      document.getElementById('avatar-hero').style.setProperty(
+        '--hero-accent', `linear-gradient(90deg, ${tier.color}66, transparent)`
+      );
+
+      const usernameEl = document.getElementById('username-display');
+      usernameEl.textContent = name;
+      const profileTextColor = localStorage.getItem('nd_profile_text_color');
+      if (profileTextColor) {
+        usernameEl.style.color = profileTextColor;
+        usernameEl.style.textShadow = `0 0 14px ${profileTextColor}88`;
+      } else {
+        usernameEl.style.color = '';
+        usernameEl.style.textShadow = '';
+      }
+
+      const badge = document.getElementById('tier-badge');
+      badge.textContent = tier.tier;
+      badge.style.cssText = `color:${tier.color};border-color:${tier.color}44;background:${tier.color}11;text-shadow:0 0 8px ${tier.glow};font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;padding:3px 10px;border-radius:3px;border:1px solid`;
+      document.getElementById('rank-pts').textContent = player.rankPoints.toLocaleString() + ' pts';
+
+      // Stats
+      const practiceCompleted = JSON.parse(localStorage.getItem('nd_completed_cases') || '[]');
+      const practicePool = MYSTERIES.filter(m => !m.variantOf && (m.mode === 'practice' || m.mode === 'both'));
+      const totalScore   = parseInt(localStorage.getItem('nd_total_score') || '0');
+      const judgeCount   = parseInt(localStorage.getItem('nd_judge_count') || '0');
+      const totalCases   = practiceCompleted.length + player.wins + player.losses;
+
+      document.getElementById('stat-score').textContent    = totalScore.toLocaleString();
+      document.getElementById('stat-currency').textContent = getCurrency().toLocaleString();
+      document.getElementById('stat-cases').textContent    = totalCases;
+      document.getElementById('stat-judge').textContent    = judgeCount;
+
+      // Competitive record
+      const totalGames = player.wins + player.losses;
+      document.getElementById('comp-wins').textContent    = player.wins;
+      document.getElementById('comp-losses').textContent  = player.losses;
+      document.getElementById('comp-winrate').textContent =
+        totalGames > 0 ? Math.round((player.wins / totalGames) * 100) + '%' : '—';
+
+      // Practice progress
+      const practiced = practicePool.filter(m => practiceCompleted.includes(m.id)).length;
+      document.getElementById('practice-frac').textContent = `${practiced} / ${practicePool.length}`;
+      const pct = practicePool.length > 0 ? (practiced / practicePool.length) * 100 : 0;
+      document.getElementById('practice-bar').style.width = pct + '%';
+    }
+
+    function startEdit() {
+      document.getElementById('username-display-row').style.display = 'none';
+      const row = document.getElementById('username-edit-row');
+      row.classList.add('active');
+      document.getElementById('username-edit-input').value = getProfileName();
+      document.getElementById('username-edit-input').focus();
+    }
+
+    function saveEdit() {
+      const val = document.getElementById('username-edit-input').value.trim();
+      if (!val) return;
+      setProfileName(val);
+      document.getElementById('username-edit-row').classList.remove('active');
+      document.getElementById('username-display-row').style.display = 'flex';
+      render();
+    }
+
+    function saveSetup() {
+      const val = document.getElementById('setup-input').value.trim();
+      if (!val) return;
+      setProfileName(val);
+      getOrCreatePlayer(val);
+      render();
+    }
+
+    document.getElementById('username-edit-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveEdit(); });
+    document.getElementById('setup-input').addEventListener('keydown', e => { if (e.key === 'Enter') saveSetup(); });
+
+    render();
+  </script>
+  <script src="shared.js"></script>
+</body>
+</html>

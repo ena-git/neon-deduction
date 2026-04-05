@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Case Closed — Neon Deduction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0D0D0D;
+      --pink: #FF2D78;
+      --violet: #7B2FFF;
+      --cyan: #00F5FF;
+      --green: #00FF88;
+      --yellow: #FFD700;
+      --red: #FF3333;
+      --text: #E8E8E8;
+      --text-dim: #555;
+      --card-bg: #0F0F0F;
+      --border: #1A1A1A;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* Animated background based on result */
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      transition: all 1s ease;
+    }
+    .bg-glow::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 160px;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,245,255,0.04) 35%, rgba(0,245,255,0.06) 50%, rgba(0,245,255,0.04) 65%, transparent 100%);
+      animation: beam-sweep 16s linear infinite;
+    }
+    @keyframes beam-sweep {
+      0%   { transform: translateY(-160px); opacity: 0; }
+      4%   { opacity: 1; }
+      70%  { opacity: 1; }
+      80%  { transform: translateY(100vh); opacity: 0; }
+      100% { transform: translateY(100vh); opacity: 0; }
+    }
+
+    .bg-glow.win {
+      background:
+        radial-gradient(ellipse 600px 400px at 50% 0%, rgba(0,255,136,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 400px 300px at 20% 100%, rgba(123,47,255,0.05) 0%, transparent 60%);
+    }
+
+    /* Top bar */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 40px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13,13,13,0.97);
+      backdrop-filter: blur(12px);
+    }
+
+    .case-ref {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .currency-display {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--yellow);
+    }
+
+    /* Hero section */
+    .hero {
+      padding: 56px 40px 40px;
+      position: relative;
+    }
+
+    .result-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .result-eyebrow.win  { color: var(--green); }
+
+    .result-heading {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+
+    .result-heading.win {
+      background: linear-gradient(135deg, var(--green), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 24px rgba(0,255,136,0.4));
+    }
+
+    .result-sub {
+      font-size: 15px;
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+
+    .header-rule {
+      height: 1px;
+      background: linear-gradient(90deg, var(--green), transparent);
+      margin-top: 32px;
+      opacity: 0.3;
+    }
+
+    /* Main grid */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 24px;
+      padding: 32px 40px 60px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .content-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Truth panel */
+    .truth-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .truth-panel::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--green);
+      box-shadow: 0 0 16px var(--green);
+    }
+
+    .panel-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+
+    .truth-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .truth-text {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #C8C8C8;
+    }
+
+    /* Player answer */
+    .player-answer-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px 28px;
+      margin-top: 20px;
+      position: relative;
+    }
+
+    .player-answer-panel::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--violet);
+      border-radius: 3px 0 0 3px;
+    }
+
+    .player-answer-text {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #AAA;
+      font-style: italic;
+    }
+
+    /* Score panel */
+    .score-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .score-total-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(0,255,136,0.25);
+      border-radius: 8px;
+      padding: 28px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .score-total-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      box-shadow: 0 0 12px var(--green);
+    }
+
+    .score-total-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    .score-total-value {
+      font-size: 72px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--green);
+      text-shadow: 0 0 30px rgba(0,255,136,0.4), 0 0 60px rgba(0,255,136,0.2);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .score-total-pts {
+      font-size: 16px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* Score breakdown */
+    .score-breakdown {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 13px;
+    }
+
+    .breakdown-row:last-child { border-bottom: none; }
+
+    .breakdown-label { color: var(--text-dim); }
+
+    .breakdown-value {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .breakdown-value.base    { color: var(--text); }
+    .breakdown-value.bonus   { color: var(--green); }
+    .breakdown-value.penalty { color: var(--red); }
+    .breakdown-value.total   { color: var(--yellow); font-size: 15px; }
+
+    .breakdown-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
+    /* Currency earned */
+    .currency-earned {
+      background: rgba(255,215,0,0.05);
+      border: 1px solid rgba(255,215,0,0.2);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .currency-earned-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .currency-earned-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--yellow);
+      text-shadow: 0 0 20px rgba(255,215,0,0.3);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .currency-earned-sub {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* Stats row */
+    .stats-mini {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-mini {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat-mini-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    .stat-mini-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 4px;
+    }
+
+    /* Action buttons */
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-next {
+      width: 100%;
+      background: var(--green);
+      border: none;
+      color: #0D0D0D;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+    }
+    .btn-next:hover { box-shadow: 0 0 28px rgba(0,255,136,0.4); }
+
+    .btn-back {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+    }
+    .btn-back:hover { border-color: var(--violet); color: var(--text); }
+
+    /* Confetti-style particles */
+    .particle {
+      position: fixed;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 200;
+      animation: particle-fall linear forwards;
+    }
+
+    @keyframes particle-fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow" id="bg-glow"></div>
+
+  <div class="top-bar">
+    <div class="case-ref" id="case-ref">CASE #000</div>
+    <div class="currency-display">◈ <span id="total-currency">0</span> Credits</div>
+  </div>
+
+  <div class="hero">
+    <div class="result-eyebrow win" id="result-eyebrow">// Case Closed</div>
+    <h1 class="result-heading win" id="result-heading">Case Solved.</h1>
+    <p class="result-sub" id="result-sub">The truth has been uncovered.</p>
+    <div class="header-rule"></div>
+  </div>
+
+  <div class="content-grid">
+    <!-- Left: truth + player answer -->
+    <div>
+      <div class="truth-panel">
+        <div class="panel-label">// The Truth</div>
+        <h2 class="truth-title" id="truth-title">Mystery Title</h2>
+        <p class="truth-text" id="truth-text">Loading...</p>
+      </div>
+
+      <div class="player-answer-panel">
+        <div class="panel-label" style="margin-bottom: 10px;">// Your Deduction</div>
+        <p class="player-answer-text" id="player-answer-text">"Loading..."</p>
+      </div>
+    </div>
+
+    <!-- Right: score -->
+    <div class="score-panel">
+      <div class="score-total-card">
+        <div class="score-total-label">Final Score</div>
+        <div class="score-total-value" id="score-total">0</div>
+        <div class="score-total-pts">points</div>
+      </div>
+
+      <div class="score-breakdown">
+        <div class="panel-label" style="margin-bottom: 4px;">// Score Breakdown</div>
+        <div class="breakdown-row">
+          <span class="breakdown-label">Base score</span>
+          <span class="breakdown-value base" id="bd-base">+100</span>
+        </div>
+        <div class="breakdown-row">
+          <span class="breakdown-label">Accuracy bonus</span>
+          <span class="breakdown-value bonus" id="bd-accuracy">+0</span>
+        </div>
+        <div class="breakdown-row">
+          <span class="breakdown-label">Speed bonus</span>
+          <span class="breakdown-value bonus" id="bd-speed">+0</span>
+        </div>
+        <div class="breakdown-row" id="penalty-row" style="display:none">
+          <span class="breakdown-label">Wrong guess penalties</span>
+          <span class="breakdown-value penalty" id="bd-penalty">−0</span>
+        </div>
+        <div class="breakdown-divider"></div>
+        <div class="breakdown-row">
+          <span class="breakdown-label" style="font-weight:600; color: var(--text);">Total</span>
+          <span class="breakdown-value total" id="bd-total">0</span>
+        </div>
+      </div>
+
+      <div class="stats-mini">
+        <div class="stat-mini">
+          <div class="stat-mini-value" id="stat-questions">0</div>
+          <div class="stat-mini-label">Questions Used</div>
+        </div>
+        <div class="stat-mini">
+          <div class="stat-mini-value" id="stat-time">0:00</div>
+          <div class="stat-mini-label">Time Taken</div>
+        </div>
+      </div>
+
+      <div class="currency-earned">
+        <div class="currency-earned-label">◈ Credits Earned</div>
+        <div class="currency-earned-value" id="credits-earned">0</div>
+        <div class="currency-earned-sub">Added to your account</div>
+      </div>
+
+      <div class="actions">
+        <a href="mystery-selection.html" class="btn-next">→ Next Case</a>
+        <a href="hub.html" class="btn-back">← Back to HQ</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="mysteries.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const raw = localStorage.getItem('nd_result');
+
+      if (!raw) {
+        window.location.href = 'mystery-selection.html';
+        return;
+      }
+
+      let result;
+      try { result = JSON.parse(raw); }
+      catch (_) { window.location.href = 'mystery-selection.html'; return; }
+
+      const mystery = getMystery(result.mysteryId);
+      if (!mystery) { window.location.href = 'mystery-selection.html'; return; }
+
+      const s = result.score;
+
+      // Fill header
+      document.getElementById('case-ref').textContent = mystery.caseNumber;
+      document.getElementById('total-currency').textContent = getCurrency().toLocaleString();
+
+      // Fill truth
+      document.getElementById('truth-title').textContent = mystery.title;
+      document.getElementById('truth-text').textContent = mystery.truth;
+      document.getElementById('player-answer-text').textContent =
+        `"${result.playerAnswer || 'No answer submitted.'}"`;
+
+      // Fill score breakdown
+      document.getElementById('bd-base').textContent     = `+${s.base}`;
+      document.getElementById('bd-accuracy').textContent = `+${s.accuracyBonus}`;
+      document.getElementById('bd-speed').textContent    = `+${s.speedBonus}`;
+      document.getElementById('bd-total').textContent    = s.total;
+
+      if (s.penalties > 0) {
+        document.getElementById('penalty-row').style.display = '';
+        document.getElementById('bd-penalty').textContent = `−${s.penalties}`;
+      }
+
+      // Stats
+      document.getElementById('stat-questions').textContent = result.questionsUsed;
+      document.getElementById('stat-time').textContent = formatTime(result.timeSeconds);
+
+      // Currency
+      document.getElementById('credits-earned').textContent = s.total.toLocaleString();
+
+      // Animate score counter
+      animateCounter('score-total', 0, s.total, 1200);
+      animateCounter('credits-earned', 0, s.total, 1200);
+
+      // Win particles
+      if (result.won) {
+        document.getElementById('bg-glow').classList.add('win');
+        spawnParticles();
+      }
+
+      // Clean up result so refresh doesn't double-count
+      // (currency was already banked in game.html)
+      localStorage.removeItem('nd_result');
+    });
+
+    function animateCounter(elId, from, to, duration) {
+      const el = document.getElementById(elId);
+      const start = performance.now();
+
+      function step(now) {
+        const pct = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - pct, 3); // ease-out cubic
+        const current = Math.round(from + (to - from) * eased);
+        el.textContent = current.toLocaleString();
+        if (pct < 1) requestAnimationFrame(step);
+      }
+
+      requestAnimationFrame(step);
+    }
+
+    function spawnParticles() {
+      const colors = ['#00FF88', '#00F5FF', '#7B2FFF', '#FF2D78', '#FFD700'];
+      for (let i = 0; i < 40; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.top = '-8px';
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.animationDuration = (2 + Math.random() * 3) + 's';
+        p.style.animationDelay = (Math.random() * 2) + 's';
+        p.style.width = p.style.height = (3 + Math.random() * 5) + 'px';
+        document.body.appendChild(p);
+        p.addEventListener('animationend', () => p.remove());
+      }
+    }
+  </script>
+</body>
+</html>

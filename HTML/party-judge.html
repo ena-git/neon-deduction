@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Judge Panel — Neon Deduction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0D0D0D; --pink: #FF2D78; --violet: #7B2FFF;
+      --cyan: #00F5FF; --green: #00FF88; --yellow: #FFD700;
+      --red: #FF3333; --text: #E8E8E8; --text-dim: #555;
+      --card-bg: #0F0F0F; --border: #1C1C1C;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+      pointer-events: none; z-index: 100;
+    }
+
+    /* ── TOP BAR ─────────────────────────────────────────────── */
+    .top-bar {
+      flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; height: 48px; position: relative; z-index: 10;
+      background: rgba(13,13,13,0.97); border-bottom: 1px solid var(--border);
+    }
+    .judge-badge {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--yellow);
+    }
+    .judge-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--yellow);
+      box-shadow: 0 0 8px var(--yellow); animation: judge-pulse 2s ease-in-out infinite;
+    }
+    @keyframes judge-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .judge-name { font-size: 13px; font-weight: 700; color: var(--yellow); text-shadow: 0 0 10px rgba(255,215,0,0.4); }
+    .case-label { font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim); }
+
+    /* ── SCROLL AREA ─────────────────────────────────────────── */
+    .scroll-area {
+      flex: 1; overflow-y: auto; padding: 16px 18px 12px; position: relative; z-index: 5;
+    }
+    .scroll-area::-webkit-scrollbar { width: 3px; }
+    .scroll-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* Truth panel */
+    .truth-panel {
+      background: rgba(255,45,120,0.06); border: 1px solid rgba(255,45,120,0.2);
+      border-radius: 10px; padding: 16px 18px; margin-bottom: 16px;
+    }
+    .truth-eyebrow {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--pink); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+    }
+    .truth-lock { font-size: 12px; }
+    .truth-text { font-size: 14px; line-height: 1.7; color: var(--text); }
+
+    /* Pending question */
+    .pending-panel {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(123,47,255,0.35);
+      border-radius: 10px; padding: 16px 18px; margin-bottom: 16px;
+      animation: pq-glow 2.5s ease-in-out infinite;
+    }
+    @keyframes pq-glow {
+      0%,100% { box-shadow: 0 0 0 rgba(123,47,255,0); border-color: rgba(123,47,255,0.35); }
+      50%      { box-shadow: 0 0 24px rgba(123,47,255,0.2); border-color: rgba(123,47,255,0.6); }
+    }
+    .pq-eyebrow {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--violet); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+    }
+    .pq-det-tag {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 1px 6px; border-radius: 3px;
+    }
+    .pq-text { font-size: 16px; font-weight: 600; line-height: 1.5; color: var(--text); }
+    .pq-hint { font-size: 11px; color: var(--text-dim); margin-top: 8px; }
+
+    /* Context feed */
+    .context-section { margin-bottom: 8px; }
+    .context-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 8px;
+    }
+    .ctx-entry {
+      display: flex; gap: 8px; padding: 8px 12px;
+      background: rgba(255,255,255,0.015); border-radius: 5px;
+      border: 1px solid transparent; border-left-width: 2px; margin-bottom: 6px;
+    }
+    .ctx-badge {
+      font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 2px; border: 1px solid;
+      flex-shrink: 0; align-self: center; white-space: nowrap;
+    }
+    .ctx-body { flex: 1; min-width: 0; }
+    .ctx-text { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+    .ctx-sig { display: flex; align-items: center; gap: 5px; margin-top: 4px; }
+    .ctx-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .ctx-dot.green  { background: var(--green);  box-shadow: 0 0 4px var(--green); }
+    .ctx-dot.yellow { background: var(--yellow); box-shadow: 0 0 4px var(--yellow); }
+    .ctx-dot.red    { background: var(--red);    box-shadow: 0 0 4px var(--red); }
+    .ctx-dot.gray   { background: #555; }
+    .ctx-sig-label { font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; }
+    .ctx-sig-label.green  { color: var(--green); }
+    .ctx-sig-label.yellow { color: var(--yellow); }
+    .ctx-sig-label.red    { color: var(--red); }
+    .ctx-sig-label.gray   { color: #555; }
+
+    /* ── SIGNAL BUTTONS ──────────────────────────────────────── */
+    .signal-section {
+      flex-shrink: 0; padding: 12px 16px; position: relative; z-index: 10;
+      background: rgba(13,13,13,0.97); border-top: 1px solid var(--border);
+    }
+    .signal-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--text-dim); text-align: center; margin-bottom: 10px;
+    }
+    .signal-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .sig-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px; padding: 20px 12px; border-radius: 8px; border: 1px solid;
+      font-family: 'Space Grotesk', sans-serif; cursor: pointer; transition: all 0.18s;
+      background: transparent; position: relative; overflow: hidden;
+    }
+    .sig-btn::before {
+      content: ''; position: absolute; inset: 0;
+      background: currentColor; opacity: 0; transition: opacity 0.18s;
+    }
+    .sig-btn:hover::before  { opacity: 0.08; }
+    .sig-btn:active::before { opacity: 0.18; }
+    .sig-btn-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; position: relative; z-index: 1; }
+    .sig-btn-name { font-size: 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; position: relative; z-index: 1; }
+    .sig-btn-hint { font-size: 10px; letter-spacing: 0.08em; opacity: 0.65; position: relative; z-index: 1; }
+
+    .sig-btn.green {
+      border-color: rgba(0,255,136,0.4); color: var(--green);
+      box-shadow: 0 0 16px rgba(0,255,136,0.08);
+    }
+    .sig-btn.green .sig-btn-dot { background: var(--green); box-shadow: 0 0 10px var(--green); }
+    .sig-btn.green:hover { border-color: rgba(0,255,136,0.7); box-shadow: 0 0 24px rgba(0,255,136,0.2); }
+    .sig-btn.green:active { border-color: var(--green); box-shadow: 0 0 32px rgba(0,255,136,0.4); }
+
+    .sig-btn.yellow {
+      border-color: rgba(255,215,0,0.4); color: var(--yellow);
+      box-shadow: 0 0 16px rgba(255,215,0,0.08);
+    }
+    .sig-btn.yellow .sig-btn-dot { background: var(--yellow); box-shadow: 0 0 10px var(--yellow); }
+    .sig-btn.yellow:hover { border-color: rgba(255,215,0,0.7); box-shadow: 0 0 24px rgba(255,215,0,0.2); }
+    .sig-btn.yellow:active { border-color: var(--yellow); box-shadow: 0 0 32px rgba(255,215,0,0.4); }
+
+    .sig-btn.red {
+      border-color: rgba(255,51,51,0.4); color: var(--red);
+      box-shadow: 0 0 16px rgba(255,51,51,0.08);
+    }
+    .sig-btn.red .sig-btn-dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
+    .sig-btn.red:hover { border-color: rgba(255,51,51,0.7); box-shadow: 0 0 24px rgba(255,51,51,0.2); }
+    .sig-btn.red:active { border-color: var(--red); box-shadow: 0 0 32px rgba(255,51,51,0.4); }
+
+    .sig-btn.gray {
+      border-color: rgba(136,136,136,0.3); color: #888;
+      box-shadow: 0 0 16px rgba(136,136,136,0.04);
+    }
+    .sig-btn.gray .sig-btn-dot { background: #888; box-shadow: 0 0 6px #888; }
+    .sig-btn.gray:hover { border-color: rgba(136,136,136,0.55); }
+    .sig-btn.gray:active { border-color: #888; }
+
+    /* Prevent double-tap after first signal */
+    .signal-grid.responded { pointer-events: none; opacity: 0.5; }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="judge-badge">
+      <div class="judge-dot"></div>
+      JUDGE VIEW
+    </div>
+    <div id="case-label" class="case-label"></div>
+    <div id="judge-name" class="judge-name"></div>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- Truth (judge only) -->
+    <div class="truth-panel">
+      <div class="truth-eyebrow"><span class="truth-lock">🔒</span> THE TRUTH — JUDGE ONLY</div>
+      <div id="truth-text" class="truth-text"></div>
+    </div>
+
+    <!-- Pending question -->
+    <div class="pending-panel">
+      <div class="pq-eyebrow">
+        ⚡ INCOMING QUESTION
+        <span id="pq-det-tag" class="pq-det-tag"></span>
+      </div>
+      <div id="pq-text" class="pq-text"></div>
+      <div class="pq-hint">Tap a signal button below to respond.</div>
+    </div>
+
+    <!-- Context: previous questions -->
+    <div id="context-section" class="context-section" style="display:none">
+      <div class="context-label">// Previous Questions</div>
+      <div id="context-feed"></div>
+    </div>
+
+  </div>
+
+  <!-- Signal buttons -->
+  <div class="signal-section">
+    <div class="signal-label">// Select Signal</div>
+    <div class="signal-grid" id="signal-grid">
+      <button class="sig-btn green"  onclick="respondSignal('green')">
+        <div class="sig-btn-dot"></div>
+        <div class="sig-btn-name">GREEN</div>
+        <div class="sig-btn-hint">Yes</div>
+      </button>
+      <button class="sig-btn yellow" onclick="respondSignal('yellow')">
+        <div class="sig-btn-dot"></div>
+        <div class="sig-btn-name">YELLOW</div>
+        <div class="sig-btn-hint">Doubtful</div>
+      </button>
+      <button class="sig-btn red"    onclick="respondSignal('red')">
+        <div class="sig-btn-dot"></div>
+        <div class="sig-btn-name">RED</div>
+        <div class="sig-btn-hint">No</div>
+      </button>
+      <button class="sig-btn gray"   onclick="respondSignal('gray')">
+        <div class="sig-btn-dot"></div>
+        <div class="sig-btn-name">GRAY</div>
+        <div class="sig-btn-hint">Irrelevant</div>
+      </button>
+    </div>
+  </div>
+
+  <script src="mysteries.js"></script>
+  <script>
+    let match = null;
+
+    (function init() {
+      try { match = JSON.parse(localStorage.getItem('nd_party_match')); } catch(_) { match = null; }
+
+      if (!match || !match.pendingQuestion) {
+        window.location.href = 'party-game.html';
+        return;
+      }
+
+      // Case label
+      const mystery = match.isCustom ? match.customMystery : getMystery(match.mysteryId);
+      document.getElementById('case-label').textContent =
+        match.isCustom ? 'CUSTOM' : (mystery && mystery.caseNumber ? mystery.caseNumber : 'PARTY');
+      document.getElementById('judge-name').textContent = match.judge.name;
+
+      // Truth
+      document.getElementById('truth-text').textContent = mystery ? mystery.truth : '';
+
+      // Pending question
+      const pq = match.pendingQuestion;
+      document.getElementById('pq-text').textContent = pq.text;
+
+      // Detective color tag on pending question
+      const detEntry = match.feed.find(e => e.id === pq.id);
+      if (detEntry) {
+        const color = DETECTIVE_COLORS[detEntry.detectiveColorIdx];
+        const tag = document.getElementById('pq-det-tag');
+        tag.textContent = pq.detectiveName;
+        tag.style.color = color;
+        tag.style.borderColor = color + '55';
+        tag.style.background = color + '11';
+        tag.style.border = `1px solid ${color}55`;
+        tag.style.padding = '1px 6px';
+        tag.style.borderRadius = '3px';
+      }
+
+      // Context feed (previous answered questions only)
+      const previous = match.feed.filter(e => e.id !== pq.id && e.signal !== null);
+      if (previous.length > 0) {
+        document.getElementById('context-section').style.display = 'block';
+        const feedEl = document.getElementById('context-feed');
+        // Show most recent 5 for context
+        previous.slice(-5).forEach(e => {
+          const color = DETECTIVE_COLORS[e.detectiveColorIdx];
+          const div = document.createElement('div');
+          div.className = 'ctx-entry';
+          div.style.borderLeftColor = color;
+          div.style.background = color + '05';
+          div.innerHTML = `
+            <div class="ctx-badge" style="color:${color};border-color:${color}44;background:${color}0f">${escapeHtml(e.detectiveName)}</div>
+            <div class="ctx-body">
+              <div class="ctx-text">${escapeHtml(e.text)}</div>
+              <div class="ctx-sig">
+                <div class="ctx-dot ${e.signal}"></div>
+                <span class="ctx-sig-label ${e.signal}">${e.signal.toUpperCase()}</span>
+              </div>
+            </div>
+          `;
+          feedEl.appendChild(div);
+        });
+      }
+    })();
+
+    function respondSignal(signal) {
+      if (!match || !match.pendingQuestion) return;
+
+      // Disable buttons to prevent double-tap
+      document.getElementById('signal-grid').classList.add('responded');
+
+      // Set signal on the feed entry
+      const entry = match.feed.find(e => e.id === match.pendingQuestion.id);
+      if (entry) entry.signal = signal;
+      match.pendingQuestion = null;
+
+      localStorage.setItem('nd_party_from_judge', '1');
+      localStorage.setItem('nd_party_match', JSON.stringify(match));
+      window.location.href = 'party-game.html';
+    }
+  </script>
+</body>
+</html>

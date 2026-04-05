@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Match — Neon Deduction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0D0D0D; --pink: #FF2D78; --violet: #7B2FFF;
+      --cyan: #00F5FF; --green: #00FF88; --yellow: #FFD700;
+      --red: #FF3333; --gray-signal: #444; --text: #E8E8E8;
+      --text-dim: #555; --card-bg: #0F0F0F; --border: #1C1C1C;
+      --p1: #00F5FF; --p2: #FF2D78;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+      pointer-events: none; z-index: 200;
+    }
+
+    /* ════════════════════════════════════════════════
+       DICE OVERLAY
+    ════════════════════════════════════════════════ */
+    .dice-overlay {
+      position: fixed; inset: 0; background: rgba(10,10,10,0.98);
+      z-index: 300; display: flex; align-items: center; justify-content: center;
+    }
+    .dice-inner {
+      text-align: center; max-width: 520px; padding: 0 24px;
+    }
+    .dice-eyebrow {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.3em;
+      color: var(--violet); text-transform: uppercase; margin-bottom: 10px;
+      text-shadow: 0 0 10px rgba(123,47,255,0.6);
+    }
+    .dice-title {
+      font-size: 28px; font-weight: 700; letter-spacing: -0.01em;
+      margin-bottom: 40px;
+    }
+    .dice-arena {
+      display: flex; align-items: center; justify-content: center;
+      gap: 32px; margin-bottom: 32px;
+    }
+    .dice-player-col { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .dice-pname {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .dice-pname.p1 { color: var(--p1); text-shadow: 0 0 10px rgba(0,245,255,0.5); }
+    .dice-pname.p2 { color: var(--p2); text-shadow: 0 0 10px rgba(255,45,120,0.5); }
+    .dice-face {
+      font-size: 72px; line-height: 1;
+      transition: transform 0.05s;
+      filter: drop-shadow(0 0 12px rgba(255,255,255,0.1));
+    }
+    .dice-face.rolling { animation: dice-shake 0.07s linear infinite; }
+    @keyframes dice-shake {
+      0%   { transform: rotate(-8deg) scale(1.05); }
+      50%  { transform: rotate(8deg) scale(0.95); }
+      100% { transform: rotate(-8deg) scale(1.05); }
+    }
+    .dice-score {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.1em;
+      min-height: 20px; opacity: 0; transition: opacity 0.4s;
+    }
+    .dice-score.visible { opacity: 1; }
+    .dice-vs {
+      font-size: 16px; font-weight: 700; letter-spacing: 0.2em;
+      color: var(--text-dim); padding-top: 20px;
+    }
+    .dice-verdict {
+      font-size: 16px; font-weight: 700; letter-spacing: 0.05em;
+      color: var(--yellow); min-height: 26px; margin-bottom: 28px;
+      text-shadow: 0 0 14px rgba(255,215,0,0.5);
+      transition: opacity 0.3s;
+    }
+    .dice-roll-btn, .dice-begin-btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.25em;
+      text-transform: uppercase; padding: 12px 40px;
+      border-radius: 4px; cursor: pointer; transition: all 0.25s;
+    }
+    .dice-roll-btn {
+      background: transparent; border: 1px solid var(--violet); color: var(--violet);
+    }
+    .dice-roll-btn:hover { background: var(--violet); color: #000; }
+    .dice-roll-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .dice-begin-btn {
+      background: var(--pink); border: 1px solid var(--pink); color: #000;
+      display: none;
+      box-shadow: 0 0 28px rgba(255,45,120,0.4);
+      animation: btn-appear 0.4s ease;
+    }
+    @keyframes btn-appear {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .dice-begin-btn:hover { box-shadow: 0 0 48px rgba(255,45,120,0.6); }
+
+    /* ════════════════════════════════════════════════
+       HUD
+    ════════════════════════════════════════════════ */
+    .hud {
+      flex-shrink: 0; display: flex; align-items: stretch;
+      height: 60px; border-bottom: 1px solid var(--border);
+      background: rgba(13,13,13,0.98); z-index: 10;
+    }
+    .hud-player {
+      flex: 1; display: flex; flex-direction: column; justify-content: center;
+      padding: 0 18px; transition: all 0.3s;
+    }
+    .hud-player.p1-side { border-right: 1px solid var(--border); }
+    .hud-player.p2-side { text-align: right; }
+
+    .hud-player.active.p1-side {
+      background: rgba(0,245,255,0.04);
+      box-shadow: inset -3px 0 0 rgba(0,245,255,0.6);
+    }
+    .hud-player.active.p2-side {
+      background: rgba(255,45,120,0.04);
+      box-shadow: inset 3px 0 0 rgba(255,45,120,0.6);
+    }
+    .hud-player.inactive { opacity: 0.35; }
+
+    .hud-pname {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+    .hud-player.active.p1-side .hud-pname { color: var(--p1); text-shadow: 0 0 12px rgba(0,245,255,0.5); }
+    .hud-player.active.p2-side .hud-pname { color: var(--p2); text-shadow: 0 0 12px rgba(255,45,120,0.5); }
+
+    .hud-meta { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-dim); }
+    .hud-player.p2-side .hud-meta { justify-content: flex-end; }
+    .hud-qleft {
+      font-size: 12px; font-weight: 700;
+    }
+    .hud-player.active.p1-side .hud-qleft { color: var(--p1); }
+    .hud-player.active.p2-side .hud-qleft { color: var(--p2); }
+
+    .hud-center {
+      flex-shrink: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 0 20px; gap: 2px;
+    }
+    .hud-case-tag {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.3em;
+      color: var(--text-dim); text-transform: uppercase;
+    }
+    .hud-timer {
+      font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums;
+      color: var(--cyan); letter-spacing: 0.05em;
+      text-shadow: 0 0 14px rgba(0,245,255,0.6);
+    }
+
+    /* ── TURN BAR ──────────────────────────────────────────── */
+    .turn-bar {
+      flex-shrink: 0; height: 32px; display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.25em;
+      text-transform: uppercase; border-bottom: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+    .turn-bar.p1 { color: var(--p1); background: rgba(0,245,255,0.03); text-shadow: 0 0 12px rgba(0,245,255,0.5); }
+    .turn-bar.p2 { color: var(--p2); background: rgba(255,45,120,0.03); text-shadow: 0 0 12px rgba(255,45,120,0.5); }
+    .turn-dot {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    }
+    .turn-bar.p1 .turn-dot { background: var(--p1); box-shadow: 0 0 8px var(--p1); }
+    .turn-bar.p2 .turn-dot { background: var(--p2); box-shadow: 0 0 8px var(--p2); }
+
+    /* ── SCENARIO ──────────────────────────────────────────── */
+    .scenario-panel {
+      flex-shrink: 0; padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(123,47,255,0.02); position: relative;
+    }
+    .scenario-panel::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: var(--violet); box-shadow: 0 0 10px var(--violet);
+    }
+    .scenario-label {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.3em;
+      color: var(--violet); text-transform: uppercase; margin-bottom: 5px;
+      text-shadow: 0 0 8px rgba(123,47,255,0.6);
+    }
+    .scenario-text { font-size: 13px; line-height: 1.7; color: #bbb; }
+
+    /* ── FEED ──────────────────────────────────────────────── */
+    .feed-wrap {
+      flex: 1; overflow-y: auto; padding: 16px 24px;
+      scroll-behavior: smooth;
+    }
+    .feed-wrap::-webkit-scrollbar { width: 3px; }
+    .feed-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── NOTEBOOK PAPER TEXTURE ─────────────────────────── */
+    .feed-wrap {
+      padding-left: 52px;
+      background-image:
+        linear-gradient(90deg, transparent 43px, rgba(255,80,80,0.10) 43px, rgba(255,80,80,0.10) 44px, transparent 44px),
+        repeating-linear-gradient(
+          0deg, transparent, transparent 27px,
+          rgba(255,255,255,0.035) 27px, rgba(255,255,255,0.035) 28px
+        );
+    }
+    /* ::before is taken by the player stripe, use ::after for annotation */
+    .c-entry { position: relative; }
+    .c-entry[data-signal="green"]::after {
+      content: '!';
+      font-family: 'Caveat', cursive;
+      font-size: 20px; font-weight: 700;
+      color: var(--green);
+      text-shadow: 0 0 10px rgba(0,255,136,0.7);
+      position: absolute;
+      left: -28px; top: 50%;
+      transform: translateY(-50%) rotate(-10deg);
+      pointer-events: none; line-height: 1;
+      animation: annotation-pop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes annotation-pop {
+      from { opacity: 0; transform: translateY(-50%) rotate(-10deg) scale(0.5); }
+      to   { opacity: 1; transform: translateY(-50%) rotate(-10deg) scale(1); }
+    }
+    .c-entry[data-signal="gray"] .c-entry-text { text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.25); opacity: 0.38; }
+    .c-entry[data-signal="gray"] .c-entry-num,
+    .c-entry[data-signal="gray"] .c-entry-who { opacity: 0.38; }
+
+    .feed-empty {
+      height: 100%; display: flex; align-items: center; justify-content: center;
+      color: var(--text-dim); font-size: 13px;
+    }
+
+    .c-entry {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0 12px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
+      animation: entry-in 0.25s ease;
+      position: relative;
+    }
+    @keyframes entry-in {
+      from { opacity: 0; transform: translateX(-6px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .c-entry::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 2px; border-radius: 1px;
+    }
+    .c-entry.ep0::before { background: var(--p1); box-shadow: 0 0 6px var(--p1); }
+    .c-entry.ep1::before { background: var(--p2); box-shadow: 0 0 6px var(--p2); }
+
+    .c-entry-num {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      color: var(--text-dim); flex-shrink: 0; padding-top: 2px; width: 30px;
+    }
+    .c-entry-who {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.15em;
+      text-transform: uppercase; flex-shrink: 0; padding-top: 2px; width: 72px;
+    }
+    .c-entry.ep0 .c-entry-who { color: var(--p1); }
+    .c-entry.ep1 .c-entry-who { color: var(--p2); }
+    .c-entry-text { flex: 1; font-size: 13px; line-height: 1.6; color: var(--text); }
+    .c-entry-text.hidden-text { color: var(--text-dim); font-style: italic; }
+    .c-entry-text.peekable {
+      cursor: pointer; border-bottom: 1px dashed rgba(255,215,0,0.5);
+      color: rgba(255,215,0,0.6);
+    }
+    .c-entry-text.peekable:hover { color: var(--yellow); }
+
+    /* Signal dots (reuse game.html style) */
+    .c-signal {
+      width: 14px; height: 14px; border-radius: 50%;
+      flex-shrink: 0; margin-top: 3px;
+    }
+    .c-signal.pending {
+      background: #222; position: relative; overflow: visible;
+    }
+    .c-signal.pending::after {
+      content: ''; position: absolute; inset: -3px; border-radius: 50%;
+      border: 2px solid var(--violet); border-top-color: transparent;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .c-signal.green {
+      background: var(--green);
+      animation: signal-reveal 0.4s cubic-bezier(0.34,1.56,0.64,1), pulse-green 2.2s ease-in-out 0.4s infinite;
+    }
+    .c-signal.yellow {
+      background: var(--yellow);
+      animation: signal-reveal 0.4s cubic-bezier(0.34,1.56,0.64,1), breathe-yellow 2.8s ease-in-out 0.4s infinite;
+    }
+    .c-signal.red {
+      background: var(--red);
+      animation: signal-reveal 0.4s cubic-bezier(0.34,1.56,0.64,1), ember-red 3s ease-in-out 0.4s infinite;
+    }
+    .c-signal.gray {
+      background: var(--gray-signal);
+      animation: signal-reveal 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes signal-reveal {
+      0%   { transform: scale(0); opacity: 0; }
+      60%  { transform: scale(1.35); opacity: 1; }
+      80%  { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+    @keyframes pulse-green {
+      0%,100% { box-shadow: 0 0 8px var(--green), 0 0 20px var(--green); opacity:1; }
+      50%     { box-shadow: 0 0 3px var(--green); opacity:0.6; }
+    }
+    @keyframes breathe-yellow {
+      0%,100% { box-shadow: 0 0 8px var(--yellow), 0 0 20px var(--yellow); opacity:1; }
+      50%     { box-shadow: 0 0 3px var(--yellow); opacity:0.5; }
+    }
+    @keyframes ember-red {
+      0%,100% { box-shadow: 0 0 5px var(--red), 0 0 10px var(--red); opacity:0.82; }
+      50%     { box-shadow: 0 0 10px var(--red), 0 0 22px var(--red); opacity:1; }
+    }
+
+    /* ── PEEK BANNER ───────────────────────────────────────── */
+    .peek-banner {
+      display: none; padding: 8px 24px;
+      background: rgba(255,215,0,0.07); border-bottom: 1px solid rgba(255,215,0,0.2);
+      font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+      color: var(--yellow); text-align: center;
+    }
+    .peek-banner.visible { display: block; }
+
+    /* ── BOTTOM BAR ────────────────────────────────────────── */
+    .bottom-bar {
+      flex-shrink: 0; border-top: 1px solid var(--border);
+      background: rgba(13,13,13,0.98); padding: 12px 24px; display: flex;
+      flex-direction: column; gap: 10px;
+    }
+    .skill-row { display: flex; gap: 8px; min-height: 30px; align-items: center; }
+    .skill-btn {
+      display: none; align-items: center; gap: 6px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-dim); font-family: 'Space Grotesk', sans-serif;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; padding: 4px 10px; border-radius: 3px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .skill-btn.visible { display: inline-flex; }
+    .skill-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+    .skill-btn.armed { border-color: var(--yellow); color: var(--yellow); background: rgba(255,215,0,0.06); box-shadow: 0 0 10px rgba(255,215,0,0.2); }
+    .skill-btn:disabled { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
+    .skill-used-label { font-size: 10px; color: var(--text-dim); font-style: italic; }
+
+    .input-row { display: flex; gap: 8px; }
+    .question-input {
+      flex: 1; background: #111; border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text);
+      font-family: 'Space Grotesk', sans-serif; font-size: 13px;
+      padding: 10px 14px; outline: none; transition: border-color 0.2s;
+    }
+    .question-input:focus { border-color: rgba(123,47,255,0.4); }
+    .question-input::placeholder { color: var(--text-dim); }
+    .question-input:disabled { opacity: 0.4; }
+    .ask-btn {
+      background: transparent; border: 1px solid var(--violet); color: var(--violet);
+      font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase; padding: 10px 18px;
+      border-radius: 4px; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    }
+    .ask-btn:hover:not(:disabled) { background: var(--violet); color: #000; }
+    .ask-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .reveal-row { display: flex; justify-content: center; }
+    .reveal-btn {
+      background: transparent; border: 1px solid rgba(255,45,120,0.3);
+      color: rgba(255,45,120,0.7); font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.15em;
+      text-transform: uppercase; padding: 7px 20px; border-radius: 4px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .reveal-btn:hover { border-color: var(--pink); color: var(--pink); box-shadow: 0 0 16px rgba(255,45,120,0.2); }
+    .reveal-btn:disabled { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
+
+    /* ════════════════════════════════════════════════
+       REVEAL MODAL
+    ════════════════════════════════════════════════ */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .reveal-modal {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 32px; max-width: 420px; width: 90%;
+    }
+    .modal-step { display: flex; flex-direction: column; gap: 16px; }
+    .modal-title {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.3em;
+      color: var(--text-dim); text-transform: uppercase;
+    }
+    .guesser-row { display: flex; gap: 12px; }
+    .guesser-btn {
+      flex: 1; background: transparent; border: 1px solid var(--border);
+      color: var(--text); font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; padding: 12px; border-radius: 4px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .guesser-btn.p1:hover { border-color: var(--p1); color: var(--p1); background: rgba(0,245,255,0.05); }
+    .guesser-btn.p2:hover { border-color: var(--p2); color: var(--p2); background: rgba(255,45,120,0.05); }
+    .modal-guesser-label { font-size: 12px; font-weight: 700; min-height: 18px; }
+    .answer-textarea {
+      width: 100%; background: #0A0A0A; border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text); font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px; padding: 10px 14px; outline: none; resize: vertical;
+      min-height: 80px; transition: border-color 0.2s;
+    }
+    .answer-textarea:focus { border-color: rgba(123,47,255,0.4); }
+    .modal-feedback { font-size: 12px; min-height: 18px; }
+    .modal-feedback.wrong { color: var(--red); }
+    .modal-actions { display: flex; gap: 10px; }
+    .submit-answer-btn {
+      flex: 1; background: var(--violet); border: none; color: #fff;
+      font-family: 'Space Grotesk', sans-serif; font-size: 12px;
+      font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 11px; border-radius: 4px; cursor: pointer; transition: all 0.2s;
+    }
+    .submit-answer-btn:hover { box-shadow: 0 0 18px rgba(123,47,255,0.5); }
+    .modal-cancel-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+      font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase; padding: 11px 16px;
+      border-radius: 4px; cursor: pointer; transition: all 0.2s;
+    }
+    .modal-cancel-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+    /* ════════════════════════════════════════════════
+       ENDGAME OVERLAY
+    ════════════════════════════════════════════════ */
+    .endgame-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(5,5,5,0.97); z-index: 250;
+      align-items: center; justify-content: center;
+    }
+    .endgame-overlay.open { display: flex; }
+    .endgame-content {
+      text-align: center; max-width: 540px; padding: 0 24px;
+      animation: entry-in 0.5s ease;
+    }
+    .endgame-eyebrow {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.3em;
+      color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px;
+    }
+    .endgame-winner {
+      font-size: 32px; font-weight: 700; letter-spacing: -0.01em;
+      margin-bottom: 28px;
+    }
+    .truth-box {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 20px 24px; margin-bottom: 24px;
+      text-align: left;
+    }
+    .truth-box-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.3em;
+      color: var(--violet); text-transform: uppercase; margin-bottom: 8px;
+      text-shadow: 0 0 8px rgba(123,47,255,0.5);
+    }
+    .truth-box-text { font-size: 13px; line-height: 1.75; color: #ccc; }
+    .rank-changes {
+      display: flex; gap: 16px; justify-content: center; margin-bottom: 28px;
+    }
+    .rank-change-card {
+      flex: 1; max-width: 200px; background: var(--card-bg);
+      border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px;
+      text-align: left;
+    }
+    .rc-name { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
+    .rc-delta { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
+    .rc-delta.positive { color: var(--green); text-shadow: 0 0 10px rgba(0,255,136,0.4); }
+    .rc-delta.negative { color: var(--red); }
+    .rc-tier { font-size: 11px; color: var(--text-dim); }
+    .endgame-actions { display: flex; gap: 12px; justify-content: center; }
+    .endgame-btn {
+      display: inline-block; text-decoration: none;
+      background: transparent; border: 1px solid var(--violet); color: var(--violet);
+      font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase; padding: 10px 22px;
+      border-radius: 4px; cursor: pointer; transition: all 0.2s;
+    }
+    .endgame-btn:hover { background: var(--violet); color: #000; }
+    .endgame-btn.secondary { border-color: var(--border); color: var(--text-dim); }
+    .endgame-btn.secondary:hover { border-color: var(--text-dim); color: var(--text); background: transparent; }
+  </style>
+</head>
+<body>
+
+  <!-- ══ DICE OVERLAY ══════════════════════════════════════════ -->
+  <div class="dice-overlay" id="dice-overlay">
+    <div class="dice-inner">
+      <p class="dice-eyebrow">// Match Begins</p>
+      <h2 class="dice-title">Roll for First Move</h2>
+      <div class="dice-arena">
+        <div class="dice-player-col">
+          <div class="dice-pname p1" id="dice-p1-name">P1</div>
+          <div class="dice-face" id="dice-face-p1">⚅</div>
+          <div class="dice-score" id="dice-score-p1"></div>
+        </div>
+        <div class="dice-vs">VS</div>
+        <div class="dice-player-col">
+          <div class="dice-pname p2" id="dice-p2-name">P2</div>
+          <div class="dice-face" id="dice-face-p2">⚅</div>
+          <div class="dice-score" id="dice-score-p2"></div>
+        </div>
+      </div>
+      <div class="dice-verdict" id="dice-verdict"></div>
+      <button class="dice-roll-btn" id="dice-roll-btn" onclick="rollDice()">Roll Dice</button>
+      <div id="dice-choice" style="display:none; gap:12px; justify-content:center;">
+        <button onclick="choosePosition(true)" style="font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;padding:12px 32px;border-radius:4px;cursor:pointer;background:var(--cyan);border:1px solid var(--cyan);color:#000;transition:all 0.25s;animation:btn-appear 0.4s ease;">← Go First</button>
+        <button onclick="choosePosition(false)" style="font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;padding:12px 32px;border-radius:4px;cursor:pointer;background:transparent;border:1px solid var(--violet);color:var(--violet);transition:all 0.25s;animation:btn-appear 0.4s ease;">Go Second →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GAME ══════════════════════════════════════════════════ -->
+  <div id="game-wrap" style="display:flex;flex-direction:column;height:100vh">
+
+    <!-- HUD -->
+    <div class="hud" id="hud">
+      <div class="hud-player p1-side" id="hud-p1">
+        <div class="hud-pname" id="hud-p1-name">—</div>
+        <div class="hud-meta">
+          <span id="hud-p1-tier" style="font-size:10px"></span>
+          <span>·</span>
+          <span class="hud-qleft">Q:<span id="hud-p1-q">7</span></span>
+        </div>
+      </div>
+      <div class="hud-center">
+        <div class="hud-case-tag" id="hud-case-tag">—</div>
+        <div class="hud-timer" id="hud-timer">00:00</div>
+        <button onclick="skipMatch()" style="background:none;border:1px solid var(--border);color:var(--text-dim);font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;padding:4px 10px;border-radius:3px;cursor:pointer;transition:all 0.2s;margin-top:4px" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)'">Skip</button>
+      </div>
+      <div class="hud-player p2-side" id="hud-p2">
+        <div class="hud-pname" id="hud-p2-name">—</div>
+        <div class="hud-meta" style="justify-content:flex-end">
+          <span class="hud-qleft">Q:<span id="hud-p2-q">7</span></span>
+          <span>·</span>
+          <span id="hud-p2-tier" style="font-size:10px"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Turn bar -->
+    <div class="turn-bar" id="turn-bar">
+      <div class="turn-dot"></div>
+      <span id="turn-label">—</span>
+    </div>
+
+    <!-- Scenario -->
+    <div class="scenario-panel">
+      <div class="scenario-label">Case Scenario</div>
+      <div class="scenario-text" id="scenario-text">—</div>
+    </div>
+
+    <!-- Signal legend -->
+    <div style="display:flex;align-items:center;gap:16px;padding:6px 24px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.3);flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0"></div><span style="font-size:10px;font-weight:600;letter-spacing:0.1em;color:var(--text-dim);text-transform:uppercase">Yes</span></div>
+      <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);flex-shrink:0"></div><span style="font-size:10px;font-weight:600;letter-spacing:0.1em;color:var(--text-dim);text-transform:uppercase">No</span></div>
+      <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--yellow);box-shadow:0 0 6px var(--yellow);flex-shrink:0"></div><span style="font-size:10px;font-weight:600;letter-spacing:0.1em;color:var(--text-dim);text-transform:uppercase">Doubtful</span></div>
+      <div style="display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:50%;background:#555;flex-shrink:0"></div><span style="font-size:10px;font-weight:600;letter-spacing:0.1em;color:var(--text-dim);text-transform:uppercase">Irrelevant</span></div>
+    </div>
+
+    <!-- Peek banner -->
+    <div class="peek-banner" id="peek-banner">
+      PEEK MODE ACTIVE — Tap a hidden question from your opponent to reveal it
+    </div>
+
+    <!-- Feed -->
+    <div class="feed-wrap" id="feed-wrap">
+      <div class="feed-empty" id="feed-empty">Waiting for first question…</div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="bottom-bar">
+      <div class="skill-row" id="skill-row">
+        <button class="skill-btn" id="btn-hide" onclick="toggleHideNext()">🫥 Hide Next</button>
+        <button class="skill-btn" id="btn-peek" onclick="activatePeek()">🔍 Peek</button>
+      </div>
+      <div class="input-row">
+        <input class="question-input" id="question-input" type="text" maxlength="160" placeholder="Ask a yes/no question…" />
+        <button class="ask-btn" id="ask-btn" onclick="submitQuestion()">ASK</button>
+      </div>
+      <div class="reveal-row">
+        <button class="reveal-btn" onclick="openRevealModal()">⚑ Reveal the Truth</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REVEAL MODAL ══════════════════════════════════════════ -->
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="reveal-modal">
+      <!-- Step: pick guesser -->
+      <div class="modal-step" id="step-pick">
+        <div class="modal-title">Who is guessing?</div>
+        <div class="guesser-row">
+          <button class="guesser-btn p1" id="guess-btn-p1" onclick="pickGuesser(0)"></button>
+          <button class="guesser-btn p2" id="guess-btn-p2" onclick="pickGuesser(1)"></button>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button class="modal-cancel-btn" onclick="closeRevealModal()">Cancel</button>
+        </div>
+      </div>
+      <!-- Step: submit answer -->
+      <div class="modal-step" id="step-answer" style="display:none">
+        <div class="modal-title">Reveal the Truth</div>
+        <div class="modal-guesser-label" id="modal-guesser-label"></div>
+        <textarea class="answer-textarea" id="answer-input" placeholder="Describe the full truth in your own words…"></textarea>
+        <div class="modal-feedback" id="modal-feedback"></div>
+        <div class="modal-actions">
+          <button class="submit-answer-btn" onclick="submitAnswer()">Submit Answer</button>
+          <button class="modal-cancel-btn" onclick="backToPick()">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ENDGAME OVERLAY ═══════════════════════════════════════ -->
+  <div class="endgame-overlay" id="endgame-overlay">
+    <div class="endgame-content">
+      <p class="endgame-eyebrow">// Match Over</p>
+      <div class="endgame-winner" id="endgame-winner"></div>
+      <div class="truth-box">
+        <div class="truth-box-label">The Truth</div>
+        <div class="truth-box-text" id="endgame-truth"></div>
+      </div>
+      <div class="rank-changes" id="rank-changes"></div>
+      <div class="endgame-actions">
+        <a href="leaderboard.html" class="endgame-btn">Leaderboard</a>
+        <a href="competitive-setup.html" class="endgame-btn">Rematch</a>
+        <a href="hub.html" class="endgame-btn secondary">Main Menu</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="mysteries.js"></script>
+  <script>
+    // ══════════════════════════════════════════════════════════
+    // STATE
+    // ══════════════════════════════════════════════════════════
+    let match = null;
+    let mystery = null;
+    let timerInterval = null;
+    let currentGuesser = null; // 0 or 1 — who is currently in the answer modal
+
+    const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+    // ══════════════════════════════════════════════════════════
+    // INIT
+    // ══════════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', () => {
+      const raw = localStorage.getItem('nd_comp_match');
+      if (!raw) { window.location.href = 'competitive-setup.html'; return; }
+      match = JSON.parse(raw);
+      mystery = getMystery(match.mysteryId);
+      if (!mystery) { window.location.href = 'competitive-setup.html'; return; }
+
+      // Populate dice overlay names
+      document.getElementById('dice-p1-name').textContent = match.players[0].name.toUpperCase();
+      document.getElementById('dice-p2-name').textContent = match.players[1].name.toUpperCase();
+
+      // Populate scenario
+      document.getElementById('scenario-text').textContent = mystery.scenario;
+      document.getElementById('hud-case-tag').textContent = mystery.caseNumber;
+
+      // Wire Enter key
+      document.getElementById('question-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') submitQuestion();
+      });
+      document.getElementById('answer-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && e.ctrlKey) submitAnswer();
+      });
+    });
+
+    // ══════════════════════════════════════════════════════════
+    // DICE ROLL
+    // ══════════════════════════════════════════════════════════
+    function rollDice() {
+      const rollBtn = document.getElementById('dice-roll-btn');
+      rollBtn.disabled = true;
+
+      const face1 = document.getElementById('dice-face-p1');
+      const face2 = document.getElementById('dice-face-p2');
+      face1.classList.add('rolling');
+      face2.classList.add('rolling');
+
+      let step = 0;
+      const maxSteps = 22;
+      const anim = setInterval(() => {
+        face1.textContent = DICE_FACES[Math.floor(Math.random() * 6)];
+        face2.textContent = DICE_FACES[Math.floor(Math.random() * 6)];
+        step++;
+        if (step >= maxSteps) {
+          clearInterval(anim);
+          face1.classList.remove('rolling');
+          face2.classList.remove('rolling');
+          finalizeDice();
+        }
+      }, 65);
+    }
+
+    function finalizeDice() {
+      let r1, r2;
+      do {
+        r1 = 1 + Math.floor(Math.random() * 6);
+        r2 = 1 + Math.floor(Math.random() * 6);
+      } while (r1 === r2);
+
+      document.getElementById('dice-face-p1').textContent = DICE_FACES[r1 - 1];
+      document.getElementById('dice-face-p2').textContent = DICE_FACES[r2 - 1];
+
+      const s1 = document.getElementById('dice-score-p1');
+      const s2 = document.getElementById('dice-score-p2');
+      s1.textContent = r1; s1.classList.add('visible');
+      s2.textContent = r2; s2.classList.add('visible');
+
+      const firstIdx = r1 > r2 ? 0 : 1;
+      match._diceWinnerIdx = firstIdx;
+
+      const winner = match.players[firstIdx];
+      const verdictEl = document.getElementById('dice-verdict');
+      verdictEl.textContent = `${winner.name.toUpperCase()} wins the roll — choose your start`;
+
+      const choiceEl = document.getElementById('dice-choice');
+      choiceEl.style.display = 'flex';
+    }
+
+    function choosePosition(goFirst) {
+      const winnerIdx = match._diceWinnerIdx;
+      match.currentTurn = goFirst ? winnerIdx : 1 - winnerIdx;
+      delete match._diceWinnerIdx;
+      saveMatch();
+      document.getElementById('dice-overlay').style.display = 'none';
+      updateHUD();
+      updateTurnBar();
+      updateSkillButtons();
+      setInputEnabled(true);
+      timerInterval = setInterval(tick, 1000);
+      document.getElementById('question-input').focus();
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // TIMER
+    // ══════════════════════════════════════════════════════════
+    function tick() {
+      if (match.gameEnded) { clearInterval(timerInterval); return; }
+      match.timeSeconds++;
+      document.getElementById('hud-timer').textContent = formatTime(match.timeSeconds);
+      if (match.timeSeconds === 120) {
+        document.getElementById('hud-timer').style.color = 'var(--yellow)';
+      } else if (match.timeSeconds >= 300) {
+        document.getElementById('hud-timer').style.color = 'var(--red)';
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // HUD & TURN DISPLAY
+    // ══════════════════════════════════════════════════════════
+    function updateHUD() {
+      [0, 1].forEach(i => {
+        const p = match.players[i];
+        const hudEl = document.getElementById(`hud-p${i+1}`);
+        document.getElementById(`hud-p${i+1}-name`).textContent = p.name;
+        document.getElementById(`hud-p${i+1}-q`).textContent = p.questionsLeft;
+        const tier = getTierInfo(getOrCreatePlayer(p.name).rankPoints);
+        document.getElementById(`hud-p${i+1}-tier`).textContent = tier.tier;
+        document.getElementById(`hud-p${i+1}-tier`).style.color = tier.color;
+        const isActive = match.currentTurn === i;
+        hudEl.classList.toggle('active', isActive);
+        hudEl.classList.toggle('inactive', !isActive);
+      });
+    }
+
+    function updateTurnBar() {
+      const bar = document.getElementById('turn-bar');
+      const p = match.players[match.currentTurn];
+      const isP1 = match.currentTurn === 0;
+      bar.className = `turn-bar ${isP1 ? 'p1' : 'p2'}`;
+      document.getElementById('turn-label').textContent = `${p.name.toUpperCase()}'S TURN`;
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // INPUT CONTROL
+    // ══════════════════════════════════════════════════════════
+    function setInputEnabled(enabled) {
+      const cp = match.players[match.currentTurn];
+      const canAsk = enabled && !match.gameEnded && !match.pendingSignal && cp.questionsLeft > 0;
+      document.getElementById('question-input').disabled = !canAsk;
+      document.getElementById('ask-btn').disabled = !canAsk;
+      const revealBtn = document.querySelector('.reveal-btn');
+      if (revealBtn) revealBtn.disabled = !!match.pendingSignal || !!match.gameEnded;
+      if (canAsk) {
+        const placeholder = cp.hideNextArmed
+          ? 'Your next question will be HIDDEN from the opponent…'
+          : 'Ask a yes/no question…';
+        document.getElementById('question-input').placeholder = placeholder;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // SKILL BUTTONS
+    // ══════════════════════════════════════════════════════════
+    function updateSkillButtons() {
+      const cp = match.players[match.currentTurn];
+      const hideBtn = document.getElementById('btn-hide');
+      const peekBtn = document.getElementById('btn-peek');
+
+      // Hide Next skill
+      if (cp.skills.hideQuestion) {
+        hideBtn.classList.add('visible');
+        hideBtn.classList.toggle('armed', cp.hideNextArmed);
+        hideBtn.textContent = cp.hideNextArmed ? '🫥 Armed' : '🫥 Hide Next';
+      } else {
+        hideBtn.classList.remove('visible', 'armed');
+      }
+
+      // Peek skill
+      if (cp.skills.peek) {
+        peekBtn.classList.add('visible');
+      } else {
+        peekBtn.classList.remove('visible');
+      }
+    }
+
+    function toggleHideNext() {
+      const cp = match.players[match.currentTurn];
+      if (!cp.skills.hideQuestion) return;
+      cp.hideNextArmed = !cp.hideNextArmed;
+      saveMatch();
+      updateSkillButtons();
+      setInputEnabled(true);
+    }
+
+    function activatePeek() {
+      const cp = match.players[match.currentTurn];
+      if (!cp.skills.peek) return;
+      cp.peekActive = true;
+      saveMatch();
+      document.getElementById('peek-banner').classList.add('visible');
+      renderFeed(); // re-render to show peekable entries
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // SUBMIT QUESTION
+    // ══════════════════════════════════════════════════════════
+    function submitQuestion() {
+      const input = document.getElementById('question-input');
+      const text = input.value.trim();
+      const cp = match.players[match.currentTurn];
+      if (!text || cp.questionsLeft <= 0 || match.pendingSignal || match.gameEnded) return;
+
+      input.value = '';
+      setInputEnabled(false);
+
+      // Consume hide-next if armed
+      const hidden = cp.hideNextArmed;
+      if (hidden) { cp.hideNextArmed = false; cp.skills.hideQuestion = false; }
+
+      cp.questionsLeft--;
+      cp.questionsUsed++;
+
+      const entryId = `ce-${match.feed.length + 1}`;
+      match.feed.push({
+        id: entryId,
+        playerIdx: match.currentTurn,
+        text,
+        signal: null,
+        hidden,
+        peeked: false
+      });
+      match.pendingSignal = true;
+      saveMatch();
+      renderFeed();
+      updateHUD();
+
+      const delay = 650 + Math.random() * 950;
+      setTimeout(() => resolveSignal(entryId, text), delay);
+    }
+
+    function resolveSignal(entryId, text) {
+      const entry = match.feed.find(e => e.id === entryId);
+      if (!entry) return;
+      entry.signal = judgeQuestion(mystery.id, text);
+      match.pendingSignal = false;
+      saveMatch();
+      renderFeed();
+      advanceTurn();
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // TURN MANAGEMENT
+    // ══════════════════════════════════════════════════════════
+    function advanceTurn() {
+      if (match.gameEnded) return;
+      const opponent = match.players[1 - match.currentTurn];
+      if (opponent.questionsLeft > 0) {
+        match.currentTurn = 1 - match.currentTurn;
+      }
+      // else: opponent is out of questions, current player keeps going
+      saveMatch();
+      updateHUD();
+      updateTurnBar();
+      updateSkillButtons();
+      setInputEnabled(true);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // FEED RENDERING
+    // ══════════════════════════════════════════════════════════
+    function renderFeed() {
+      const wrap = document.getElementById('feed-wrap');
+      const empty = document.getElementById('feed-empty');
+      const cp = match.players[match.currentTurn];
+
+      if (match.feed.length === 0) {
+        empty.style.display = 'flex';
+        const firstName = match.players[match.currentTurn]?.name || '?';
+        empty.textContent = `Waiting for first question — ${firstName} goes first.`;
+        return;
+      }
+      empty.style.display = 'none';
+
+      // Clear and re-render all entries
+      const existing = wrap.querySelectorAll('.c-entry');
+      existing.forEach(e => e.remove());
+
+      match.feed.forEach((entry, idx) => {
+        const el = document.createElement('div');
+        el.className = `c-entry ep${entry.playerIdx}`;
+        el.id = entry.id;
+        el.dataset.signal = entry.signal || 'pending';
+
+        const isOpponentEntry = entry.playerIdx !== match.currentTurn;
+        const isHiddenToMe = entry.hidden && !entry.peeked && isOpponentEntry;
+        const isPeekable = isHiddenToMe && cp.peekActive && !match.pendingSignal;
+
+        const pName = match.players[entry.playerIdx].name;
+        const displayText = isHiddenToMe
+          ? (isPeekable ? '[HIDDEN — tap to reveal]' : '[HIDDEN]')
+          : entry.text;
+        const textClass = isHiddenToMe
+          ? (isPeekable ? 'c-entry-text peekable' : 'c-entry-text hidden-text')
+          : 'c-entry-text';
+
+        const signalClass = entry.signal ? entry.signal : 'pending';
+
+        el.innerHTML = `
+          <div class="c-entry-num">Q.${String(idx + 1).padStart(2, '0')}</div>
+          <div class="c-entry-who">${escapeHtml(pName)}</div>
+          <div class="${textClass}" data-entry-idx="${idx}">${escapeHtml(displayText)}</div>
+          <div class="c-signal ${signalClass}" id="sig-${entry.id}"></div>
+        `;
+
+        if (isPeekable) {
+          el.querySelector('.c-entry-text').addEventListener('click', () => peekEntry(idx));
+        }
+
+        wrap.appendChild(el);
+      });
+
+      wrap.scrollTop = wrap.scrollHeight;
+    }
+
+    function peekEntry(entryIdx) {
+      const cp = match.players[match.currentTurn];
+      if (!cp.peekActive) return;
+      const entry = match.feed[entryIdx];
+      if (!entry || !entry.hidden || entry.peeked) return;
+      if (entry.playerIdx === match.currentTurn) return;
+
+      entry.peeked = true;
+      cp.peekActive = false;
+      cp.skills.peek = false;
+      document.getElementById('peek-banner').classList.remove('visible');
+      saveMatch();
+      renderFeed();
+      updateSkillButtons();
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // REVEAL MODAL
+    // ══════════════════════════════════════════════════════════
+    function openRevealModal() {
+      if (match.gameEnded || match.pendingSignal) return;
+      // Set player names on guesser buttons
+      document.getElementById('guess-btn-p1').textContent = match.players[0].name;
+      document.getElementById('guess-btn-p2').textContent = match.players[1].name;
+      // Show pick step
+      document.getElementById('step-pick').style.display = 'flex';
+      document.getElementById('step-answer').style.display = 'none';
+      document.getElementById('modal-feedback').textContent = '';
+      document.getElementById('modal-backdrop').classList.add('open');
+    }
+
+    function closeRevealModal() {
+      document.getElementById('modal-backdrop').classList.remove('open');
+      currentGuesser = null;
+    }
+
+    function pickGuesser(playerIdx) {
+      currentGuesser = playerIdx;
+      const p = match.players[playerIdx];
+      document.getElementById('modal-guesser-label').textContent = `Guessing: ${p.name}`;
+      document.getElementById('modal-guesser-label').style.color =
+        playerIdx === 0 ? 'var(--p1)' : 'var(--p2)';
+      document.getElementById('step-pick').style.display = 'none';
+      document.getElementById('step-answer').style.display = 'flex';
+      document.getElementById('answer-input').value = '';
+      document.getElementById('modal-feedback').textContent = '';
+      setTimeout(() => document.getElementById('answer-input').focus(), 50);
+    }
+
+    function backToPick() {
+      document.getElementById('step-pick').style.display = 'flex';
+      document.getElementById('step-answer').style.display = 'none';
+      currentGuesser = null;
+    }
+
+    function submitAnswer() {
+      const text = document.getElementById('answer-input').value.trim();
+      if (!text || currentGuesser === null) return;
+
+      const correct = checkAnswer(mystery.id, text);
+      if (correct) {
+        closeRevealModal();
+        endGame(currentGuesser);
+      } else {
+        match.players[currentGuesser].penalties += 20;
+        saveMatch();
+        const fb = document.getElementById('modal-feedback');
+        fb.textContent = '✗ Incorrect — 20 point penalty. The other player can still win.';
+        fb.className = 'modal-feedback wrong';
+        document.getElementById('answer-input').value = '';
+        // After wrong: close modal, game continues
+        setTimeout(() => {
+          closeRevealModal();
+          updateHUD();
+        }, 2000);
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // SKIP
+    // ══════════════════════════════════════════════════════════
+    function skipMatch() {
+      if (match.gameEnded) return;
+      if (!confirm('Skip this match? No rank change, no reward. The case will be marked as seen.')) return;
+      clearInterval(timerInterval);
+      // Mark both players as having seen this mystery (anti-cheat: no replaying the same one)
+      match.players.forEach(p => markSeenCompetitive(p.name, match.mysteryId));
+      window.location.href = 'competitive-setup.html';
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // END GAME
+    // ══════════════════════════════════════════════════════════
+    function endGame(winnerIdx) {
+      if (match.gameEnded) return;
+      match.gameEnded = true;
+      clearInterval(timerInterval);
+      // Mark both players as having seen this mystery
+      match.players.forEach(p => markSeenCompetitive(p.name, match.mysteryId));
+      saveMatch();
+
+      const loserIdx = 1 - winnerIdx;
+      const winner = match.players[winnerIdx];
+      const loser  = match.players[loserIdx];
+
+      // Update rankings — only ranked mode awards ranking score
+      updatePlayerStats(winner.name, { rankDelta: +25, winDelta: 1 });
+      updatePlayerStats(loser.name,  { rankDelta: -15, lossDelta: 1 });
+
+      // Award currency and ranking score (ranked mode only)
+      addCurrency(100);  // flat match credit awarded to the device
+      const prevScore = parseInt(localStorage.getItem('nd_total_score') || '0');
+      localStorage.setItem('nd_total_score', prevScore + 25);
+
+      const winnerAfter = getOrCreatePlayer(winner.name);
+      const loserAfter  = getOrCreatePlayer(loser.name);
+      const winnerTier  = getTierInfo(winnerAfter.rankPoints);
+      const loserTier   = getTierInfo(loserAfter.rankPoints);
+
+      // Populate endgame overlay
+      const winnerEl = document.getElementById('endgame-winner');
+      winnerEl.textContent = `${winner.name} Wins`;
+      winnerEl.style.color = winnerIdx === 0 ? 'var(--p1)' : 'var(--p2)';
+      winnerEl.style.textShadow = winnerIdx === 0
+        ? '0 0 30px rgba(0,245,255,0.4)' : '0 0 30px rgba(255,45,120,0.4)';
+
+      document.getElementById('endgame-truth').textContent = mystery.truth;
+
+      const rankChanges = document.getElementById('rank-changes');
+      rankChanges.innerHTML = `
+        <div class="rank-change-card">
+          <div class="rc-name">${escapeHtml(winner.name)}</div>
+          <div class="rc-delta positive">+25 pts</div>
+          <div class="rc-tier">${winnerTier.tier} — ${winnerAfter.rankPoints.toLocaleString()} pts</div>
+        </div>
+        <div class="rank-change-card">
+          <div class="rc-name">${escapeHtml(loser.name)}</div>
+          <div class="rc-delta negative">−15 pts</div>
+          <div class="rc-tier">${loserTier.tier} — ${loserAfter.rankPoints.toLocaleString()} pts</div>
+        </div>
+      `;
+
+      document.getElementById('endgame-overlay').classList.add('open');
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // PERSISTENCE
+    // ══════════════════════════════════════════════════════════
+    function saveMatch() {
+      localStorage.setItem('nd_comp_match', JSON.stringify(match));
+    }
+  </script>
+</body>
+</html>
