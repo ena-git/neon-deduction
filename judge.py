@@ -62,7 +62,7 @@ def load_game_file(filepath: str) -> Dict[str, Any]:
 
 
 def call_lm_studio(prompt: str) -> str:
-    url = "http://127.0.0.1:1234/v1/chat/completions"
+    url = input ("Enter the API URL:").strip()
 
     payload = {
         "model": "meta-llama-3.1-8b-instruct",
