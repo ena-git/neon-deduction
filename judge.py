@@ -2,6 +2,7 @@ import json
 import re
 import requests
 from typing import Any, Dict, Optional
+from config import API_URL, API_KEY, MODEL_NAME
 
 
 def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
@@ -63,10 +64,12 @@ def load_game_file(filepath: str) -> Dict[str, Any]:
 
 
 def call_lm_studio(prompt: str) -> str:
-    url = input ("Enter the API URL:").strip()
+    headers = {}
+    if API_KEY:
+        headers["Authorization"] = f"Bearer {API_KEY}"
 
     payload = {
-        "model": "meta-llama-3.1-8b-instruct",
+        "model": MODEL_NAME,
         "messages": [
             {"role": "system", "content": "Return only one JSON object."},
             {"role": "user", "content": prompt}
@@ -74,7 +77,7 @@ def call_lm_studio(prompt: str) -> str:
         "temperature": 0.1
     }
 
-    response = requests.post(url, json=payload, timeout=120)
+    response = requests.post(API_URL, json=payload, headers=headers, timeout=120)
     response.raise_for_status()
 
     result = response.json()
