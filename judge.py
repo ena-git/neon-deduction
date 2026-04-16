@@ -36,7 +36,6 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
 
     return None
 
-
 def extract_verdict(parsed: Dict[str, Any]) -> str:
     """
     Normalize verdict into YES / NO / IRRELEVANT / DOUBTFUL.
@@ -87,87 +86,117 @@ def call_lm_studio(prompt: str) -> str:
 
 
 def build_prompt(data: Dict[str, Any], public_info: str, userQ: str) -> str:
-   hidden_truth = data.get("hidden_truth", "")
+   prompt = f"""
+You are the judge for a Turtle Soup (lateral thinking puzzle) game.
 
-   prompt = f"""You are the judge of a Turtle Soup (lateral thinking) puzzle game.
+Your job is to answer the player's yes/no question using the hidden solution as the ground truth.
 
-The player sees only the public scenario and asks yes/no questions to deduce the hidden truth. You know both. Judge the player's question strictly against the hidden truth.
+IMPORTANT:
+- The player only sees the public scenario.
+- You, the judge, also know the hidden truth.
+- Judge the player's question against the hidden truth, NOT only against the public scenario.
 
----
+Return one of these verdicts:
+- YES: the question is supported by the hidden truth.
+- NO: the question is contradicted by the hidden truth.
+- IRRELEVANT: the question asks about something not established by the hidden truth, or not meaningfully related to solving the puzzle.
+- DOUBTFUL: the question is not fully supported bt the hidden truth, but neither fully contradicted by the hidden truth.
 
-## Verdicts (pick exactly one)
+Rules:
+1. Use hidden_truth as the main source of truth.
+2. Use public_info only as the visible setup seen by the player.
+3. Do not invent facts beyond hidden_truth.
+4. If the hidden truth clearly supports the question, answer YES.
+5. If the hidden truth clearly contradicts the question, answer NO.
+6. If the hidden truth does not establish the answer, answer IRRELEVANT.
+7. Return only valid JSON.
+8. clarification must be short and directly explain the verdict.
 
-| Verdict    | When to use |
-|------------|-------------|
-| YES        | The hidden truth clearly supports or confirms the question. |
-| NO         | The hidden truth explicitly contradicts the question. Only use NO when there is a direct contradiction. |
-| DOUBTFUL   | The question is partially related to the hidden truth but is neither clearly confirmed nor clearly contradicted. The player is on a plausible but uncertain track. |
-| IRRELEVANT | The question asks about something the hidden truth says nothing about, or it has no meaningful connection to the puzzle. |
-
-Key distinction -- NO vs DOUBTFUL:
-- NO = the hidden truth states the opposite of what the player asked.
-- DOUBTFUL = the hidden truth does not fully confirm it, but does not contradict it either.
-When in doubt between NO and DOUBTFUL, prefer DOUBTFUL.
-
-Key distinction -- DOUBTFUL vs IRRELEVANT:
-- DOUBTFUL = the topic is related to the puzzle but the specific claim is uncertain.
-- IRRELEVANT = the topic has no connection to the puzzle at all.
-
----
-
-## Rules
-1. Use the hidden truth as the sole source of truth. Do not invent facts beyond it.
-2. The public scenario is only context for what the player can see.
-3. Return exactly one JSON object, nothing else.
-4. The clarification must be one short sentence explaining the verdict without revealing the hidden truth.
-
----
-
-## Puzzle
-
-Public scenario (visible to the player):
+Public scenario:
 \"\"\"
 {public_info}
 \"\"\"
 
-Hidden truth (only you know this):
+Hidden truth:
 \"\"\"
-{hidden_truth}
+{data.get("hidden_truth", "")}
 \"\"\"
 
-Player's question:
+Player question:
 \"\"\"
 {userQ}
 \"\"\"
 
----
+Full data:
+{json.dumps(data, ensure_ascii=False, indent=2)}
 
-## Examples
+Output format:
+{{
+<<<<<<< HEAD
+  "verdict": "YES | NO | IRRELEVAN | DOUBTFUL",
+=======
+  "verdict": "YES | NO | IRRELEVANT | DOUBTFUL",
+>>>>>>> 4644b0bf1319fdd1cc0d9cfe64dff1a04b87f5f3
+  "clarification": "short explanation"
+}}
 
-Using the classic turtle soup puzzle as reference:
-- Public: "A man orders turtle soup at a restaurant, tastes it, then kills himself."
-- Hidden: "He was once stranded and fed human flesh disguised as turtle soup. Tasting real turtle soup revealed the truth."
+Examples:
 
-Q: "Did he unknowingly eat human flesh before?"
--> {{{{"verdict": "YES", "clarification": "The hidden truth confirms he was fed human flesh."}}}}
+Example 1
+Public scenario:
+A man walks into a restaurant and orders turtle soup. After tasting it, he goes home and kills himself.
 
-Q: "Did the restaurant poison him?"
--> {{{{"verdict": "NO", "clarification": "The hidden truth says the restaurant served real turtle soup, not poison."}}}}
+Hidden truth:
+Years ago he was stranded and was fed human flesh while being told it was turtle soup. After tasting real turtle soup, he realized the truth.
 
-Q: "Was the waiter rude to him?"
--> {{{{"verdict": "IRRELEVANT", "clarification": "The hidden truth says nothing about the waiter's behavior."}}}}
+Question:
+Did he unknowingly eat human flesh before?
 
-Q: "Was he feeling guilty about something?"
--> {{{{"verdict": "DOUBTFUL", "clarification": "Guilt is plausible but the hidden truth does not explicitly mention guilt."}}}}
+Output:
+{{
+  "verdict": "YES",
+  "clarification": "The hidden truth says the earlier soup was actually human flesh."
+}}
 
----
+Example 2
+Question:
+Did the restaurant poison him?
 
-Now judge the player's question. Return only valid JSON:
-{{{{
-  "verdict": "YES | NO | DOUBTFUL | IRRELEVANT",
-  "clarification": "one short sentence"
-}}}}"""
+Output:
+{{
+  "verdict": "NO",
+  "clarification": "The hidden truth says the restaurant served real turtle soup, not poison."
+}}
 
+Example 3
+Question:
+Was the chef his brother?
+
+Output:
+{{
+  "verdict": "IRRELEVANT",
+  "clarification": "The hidden truth gives no information about the chef being his brother."
+}}
+
+Example 4
+Question: is he a transgender?
+
+Output:
+{{
+    "verdict": "DOUBTFUL",
+    "clarification": "The hidden truth does not provide any information about
+}}
+
+
+REMEMBER:
+- IRRELEVANT: the question asks about something not established by the hidden truth, or not meaningfully related to solving the puzzle.
+- DOUBTFUL: the question is not fully supported bt the hidden truth, but neither fully contradicted by the hidden truth.
+
+**ANSWER NO ONLY IN SITUATION WHERE THE HIDDEN TRUTH CLEARLY CONTRADICTS THE QUESTION. IF THE HIDDEN TRUTH DOES NOT FULLY SUPPORT THE QUESTION, BUT ALSO DOES NOT FULLY CONTRADICT THE QUESTION, ANSWER DOUBTFUL INSTEAD OF NO.**
+
+Now answer the player question.
+"""
+   
    return prompt
 
 
